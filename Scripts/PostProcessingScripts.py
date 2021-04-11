@@ -97,6 +97,136 @@ def layoutAxes(ax, nameX='', nameY='', \
     return ax
 
 
+def layoutAxesNoXandYlabel(ax, nameX='', nameY='', \
+               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True):
+    """
+    Tiny code to do the layout for axes in matplotlib
+    """
+    tickLengthMajor = 10
+    tickLengthMinor = 5
+    tickWidthMajor  = 1.5
+    tickWidthMinor  = 1.5
+    
+    #rc('axes', linewidth=2)
+    #label1 always refers to first axis not the twin 
+    if not second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    if second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(1.2)
+    ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
+    ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
+    # ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
+    # ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
+    
+    if setMinor==True:
+        # add minor ticks:
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    return ax
+
+
+def layoutAxesNoXlabel(ax, nameX='', nameY='', \
+               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True, rotation=90):
+    """
+    Tiny code to do the layout for axes in matplotlib
+    """
+    tickLengthMajor = 10
+    tickLengthMinor = 5
+    tickWidthMajor  = 1.5
+    tickWidthMinor  = 1.5
+    
+    #rc('axes', linewidth=2)
+    #label1 always refers to first axis not the twin 
+    if not second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    if second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(1.2)
+    ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
+    ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
+    # ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
+    ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad, rotation=rotation, va="center")#, fontweight='bold')    
+
+
+
+
+    if setMinor==True:
+        # add minor ticks:
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    return ax
+
+
+
+
+
+
+def layoutAxesNoYlabel(ax, nameX='', nameY='', \
+               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True, rotation=0):
+    """
+    Tiny code to do the layout for axes in matplotlib
+    """
+    tickLengthMajor = 10
+    tickLengthMinor = 5
+    tickWidthMajor  = 1.5
+    tickWidthMinor  = 1.5
+    
+    #rc('axes', linewidth=2)
+    #label1 always refers to first axis not the twin 
+    if not second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        # for tick in ax.yaxis.get_major_ticks():
+        #     tick.label1.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    if second:
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+        # for tick in ax.yaxis.get_major_ticks():
+        #     tick.label2.set_fontsize(fontsize)
+            #tick.label1.set_fontweight('bold')
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(1.2)
+    ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
+    ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
+    ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad, rotation=rotation, va="center")#,fontweight='bold')
+    # ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
+    
+    if setMinor==True:
+        # add minor ticks:
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    return ax
+
+
 
 bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.75) # for box around text in plot
 
@@ -150,39 +280,68 @@ zorderlist = { 'classic':10, 'stable B no CEE':13, \
 
 
 # default settings for labels and names of BPS models 
-nModels=15
+
+
+
+DCOname_dict = {'BHNS':'BHNS', 'BBH':'BHBH', 'BNS':'NSNS'}
+    
+
+
+nModels=17
 BPSnameslist = list(string.ascii_uppercase)[0:nModels]
 modelDirList = ['fiducial', 'massTransferEfficiencyFixed_0_25', 'massTransferEfficiencyFixed_0_5', 'massTransferEfficiencyFixed_0_75', \
-               'unstableCaseBB', 'alpha0_5', 'alpha2_0', 'fiducial', 'rapid', 'maxNSmass2_0', 'maxNSmass3_0', 'noPISN',  'ccSNkick_100km_s', 'ccSNkick_30km_s', 'noBHkick' ]
+               'unstableCaseBB', 'alpha0_5', 'alpha2_0', 'fiducial', 'rapid', 'maxNSmass2_0', 'maxNSmass3_0', 'noPISN',  'ccSNkick_100km_s', 'ccSNkick_30km_s', 'noBHkick', 'wolf_rayet_multiplier_0_1', 'wolf_rayet_multiplier_5']
 
 alphabetDirDict =  {BPSnameslist[i]: modelDirList[i] for i in range(len(BPSnameslist))}
-
+BPScolors       = sns.color_palette("husl", nModels)
+colorDirDict =  {BPSnameslist[i]: BPScolors[i] for i in range(len(BPSnameslist))}
 
 physicalNamesBPSmodels = [r'\textbf{fiducial}',\
                            r'$\beta=0.25$', r'$\beta=0.5$',  r'$\beta=0.75$',r'\textbf{unstable case BB}',\
                            r'$\alpha_{\rm{CE}}=0.5$',  r'$\alpha_{\rm{CE}}=2$', r'\textbf{optimistic CE}',\
                           r'\textbf{rapid SN}', r'$\rm{max} \ m_{\rm{NS}}=2.0\,\rm{M}_{\odot}$', r'$\rm{max} \ m_{\rm{NS}}=3.0\,\rm{M}_{\odot}$',\
                           r'\textbf{no PISN}', r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}=100\,\rm{km}\,\rm{s}^{-1}$',r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}=30\,\rm{km}\,\rm{s}^{-1}$',\
-                          r'\textbf{SN} '+ r'$v_{\rm{k,BH}}=0\,\rm{km}\,\rm{s}^{-1}$' ]
+                          r'\textbf{SN} '+ r'$v_{\rm{k,BH}}=0\,\rm{km}\,\rm{s}^{-1}$', r'$\rm{f}_{\rm{WR}} = 0.1$', r'$\rm{f}_{\rm{WR}} = 5$' ]
 
+DCOtypeColorsDict = {'BHNS':'#66c2a5', 'BHBH':'#8da0cb', 'BBH':'#8da0cb', 'NSNS':'#fc8d62', 'BNS':'#fc8d62'}
 
 
 alphabetPhysicalNameDict =  {BPSnameslist[i]: physicalNamesBPSmodels[i] for i in range(len(BPSnameslist))}
 
 
 
+
+
 physicalNamesBPSmodelsWithEnter = [r'\textbf{fiducial}',\
                            r'$\beta=0.25$', r'$\beta=0.5$',  r'$\beta=0.75$',r'\textbf{unstable}' + '\n'+ r'\textbf{case BB}',\
-                           r'$\alpha_{\rm{CE}}=0.5$',  r'$\alpha_{\rm{CE}}=2$', r'\textbf{optimistic CE}',\
+                           r'$\alpha_{\rm{CE}}=0.5$',  r'$\alpha_{\rm{CE}}=2$', r'\textbf{optimistic}' +'\n' + r'\textbf{CE}',\
                           r'\textbf{rapid SN}', r'$\rm{max} \ m_{\rm{NS}}$' +'\n' + r'$2.0\,\rm{M}_{\odot}$', r'$\rm{max} \ m_{\rm{NS}}$' +'\n' + r'$3.0\,\rm{M}_{\odot}$',\
                           r'\textbf{no PISN}', r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}$' +'\n' + r'$100\,\rm{km}\,\rm{s}^{-1}$',r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}$' +'\n' + r'$30\,\rm{km}\,\rm{s}^{-1}$',\
-                          r'\textbf{SN} '+ r'$v_{\rm{k,BH}}$' +'\n' + r'$0\,\rm{km}\,\rm{s}^{-1}$' ]
+                          r'\textbf{SN} '+ r'$v_{\rm{k,BH}}$' +'\n' + r'$0\,\rm{km}\,\rm{s}^{-1}$' , r'$\rm{f}_{\rm{WR}} = 0.1$', r'$\rm{f}_{\rm{WR}} = 5$']
 
 alphabetPhysicalNameDictWithEnter =  {BPSnameslist[i]: physicalNamesBPSmodelsWithEnter[i] for i in range(len(BPSnameslist))}
 
 
 
+
+# physicalNamesBPSmodelsWithEnter = [r'\textbf{fiducial}',\
+#                            r'$\beta=0.25$', r'$\beta=0.5$',  r'$\beta=0.75$',r'\textbf{unstable}' + '\n'+ r'\textbf{case BB}',\
+#                            r'$\alpha_{\rm{CE}}=0.5$',  r'$\alpha_{\rm{CE}}=2$', r'\textbf{optimistic CE}',\
+#                           r'\textbf{rapid SN}', r'$\rm{max} \ m_{\rm{NS}}$' +'\n' + r'$2.0\,\rm{M}_{\odot}$', r'$\rm{max} \ m_{\rm{NS}}$' +'\n' + r'$3.0\,\rm{M}_{\odot}$',\
+#                           r'\textbf{no PISN}', r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}$' +'\n' + r'$100\,\rm{km}\,\rm{s}^{-1}$',r'\textbf{SN} '+ r'$\sigma_{\rm{rms}}^{\rm{1D}}$' +'\n' + r'$30\,\rm{km}\,\rm{s}^{-1}$',\
+#                           r'\textbf{SN} '+ r'$v_{\rm{k,BH}}$' +'\n' + r'$0\,\rm{km}\,\rm{s}^{-1}$' , r'$\rm{f}_{\rm{WR}} = 0.1$', r'$\rm{f}_{\rm{WR}} = 5$']
+
+# alphabetPhysicalNameDictWithEnter =  {BPSnameslist[i]: physicalNamesBPSmodelsWithEnter[i] for i in range(len(BPSnameslist))}
+
+
+
 colorlist = [ '#118AB2', '#EF476F', '#FFD166', '#073B4C', 'gray']
+
+
+GWTC_indexDict = {'Mass1':0, 'Mass2':1, 'Mtot':2, 'Mchirp':3, 'q':4}
+
+
+
 
 def obtainDataSTROOPWAFEL(param, pathToDirectory):
     """returns for STROOPWAFEL (AIS) simulation the data of wanted variable
@@ -822,9 +981,7 @@ for ind_GSMF, GSMF in enumerate(GSMFs):
 
 DCOTypeList = ['BHBH', 'BHNS', 'NSNS']
 
-NumberBPSmodels=15
-alphabet = list(string.ascii_uppercase)
-BPSnameslist = alphabet[:NumberBPSmodels]
+
 
 
 # GW stuff
