@@ -2,3 +2,13 @@
 *.pyc
 WriteRatesToCSV_EM.py
 *checkpoint.ipynb
+
+
+plottingCode/Fig_2/*.png
+plottingCode/Fig_2/Mass1/*.png
+plottingCode/Fig_2/Mass2/*.png
+plottingCode/Fig_2/MassRatio/*.png
+plottingCode/Fig_2/Mchirp/*.png
+plottingCode/Fig_2/Mtot/*.png
+plottingCode/Fig_2/vs_Mtot_q/*.png
+# plottingCode/Fig_2/Mass2/*.png
