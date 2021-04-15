@@ -243,6 +243,16 @@ dictChannelsBHNSListBolt = [r'\textbf{case A}', r'\textbf{case B}',  r'\textbf{c
 
 
 
+        
+dictChannelsBHNSListBoltWithEnter = [r'\textbf{(V)}' +'\n'+ r'\textbf{Other}',  r'\textbf{(IV)}' +'\n'+ r'\textbf{Double-core CE}' +'\n'+ r'\textbf{as first mass transfer}', r'\textbf{(III)}' +'\n'+ r'\textbf{Single-core CE}' +'\n'+ r'\textbf{as first mass transfer}',\
+r'\textbf{(II)}' +'\n'+ r'\textbf{Only stable}' +'\n'+ r'\textbf{mass transfer}', r'\textbf{(I)}' +'\n'+ r'\textbf{Classic}']
+
+
+
+
+
+
+
 zorderlist = { 'stable B':10, 'stable B no CEE':13, \
                     'case B immediate CE':12,'stable C':15,\
                     r'case C immediate CE':17, 
