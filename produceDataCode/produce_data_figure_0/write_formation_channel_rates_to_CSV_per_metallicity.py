@@ -81,12 +81,7 @@ def createEmptyCSVplaceholder(DCOtype='BBH'):
 
 
 
-INITIALIZE=True
 
-if INITIALIZE == True:
-    createEmptyCSVplaceholder(DCOtype='BNS')
-    createEmptyCSVplaceholder(DCOtype='BBH')
-    createEmptyCSVplaceholder(DCOtype='BHNS')
 
 
 
@@ -169,7 +164,7 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', \
         ZinTotalMassEvolvedPerZ_ind =0
         for nrZ, Z in enumerate(Zinitial):
             maskZ = (metallicities == Z)
-            formationRateTotal[nrZ] = np.sum(weights[maskZ]) # //floor weights
+            
 
             # if we have systems at this metallicity do the following (calculate the formation yield)
             if (np.sum(maskZ))>0:
@@ -181,6 +176,7 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', \
                 maskDoubleCE        = (metallicities == Z) & (channels==4)
                 maskOther           = (metallicities == Z) & (channels==0)
 
+                formationRateTotal[nrZ]           = np.sum(weights[maskZ]) / totalMassEvolvedPerZ[ZinTotalMassEvolvedPerZ_ind] # TOTAL rates 
                 formationRateClassic[nrZ]         = np.sum(weights[maskClassic]) / totalMassEvolvedPerZ[ZinTotalMassEvolvedPerZ_ind]
                 formationRateOnlyStableMT[nrZ]    = np.sum(weights[maskOnlyStableMT]) / totalMassEvolvedPerZ[ZinTotalMassEvolvedPerZ_ind]
                 formationRateSingleCE[nrZ]        = np.sum(weights[maskSingleCE])  / totalMassEvolvedPerZ[ZinTotalMassEvolvedPerZ_ind]
@@ -191,7 +187,7 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', \
             # otherwise add 0, 
             else:
                 print('no systems at metallicity ', Z)
-
+                formationRateTotal[nrZ]           = 0
                 formationRateClassic[nrZ]         = 0
                 formationRateOnlyStableMT[nrZ]    = 0
                 formationRateSingleCE[nrZ]        = 0
@@ -234,13 +230,33 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', \
 
     return
 
+
+
+#######################################################
+#
+#  The code below first initializes BNS, BBH and BHNS empty data files through "INITIALIZE = TRUE"
+#  Then it goes for BNS, BHNS and BBH through the hdf5 files, per metallicity it calculates which formation channel each DCO type formed through, 
+#  calculates its formation rate per Solar mass evolved, and writes that into a data file. 
+#  You will end up with a datafile for each DCO type, that for each BPS model (A, B, C, ... ) lists for each metallicity the formation channel contribution (total rate per mass evolved)
+#
+###############################################
+
+
+INITIALIZE=True
+
+if INITIALIZE == True:
+    createEmptyCSVplaceholder(DCOtype='BNS')
+    createEmptyCSVplaceholder(DCOtype='BBH')
+    createEmptyCSVplaceholder(DCOtype='BHNS')
+
+
+
 writeFormationRatesAndChannelsToFile(DCOtype='BNS', \
     pathCOMPASOutput='/Volumes/Andromeda/DATA/AllDCO_bugfix/')
 
+
 writeFormationRatesAndChannelsToFile(DCOtype='BHNS', \
     pathCOMPASOutput='/Volumes/Andromeda/DATA/AllDCO_bugfix/')
-
-
 
 
 writeFormationRatesAndChannelsToFile(DCOtype='BBH', \
