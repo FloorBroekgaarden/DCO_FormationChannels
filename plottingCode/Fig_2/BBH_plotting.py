@@ -61,11 +61,11 @@ white_outline = [PathEffects.withStroke(linewidth=2., foreground="w")]
 #------------------------------------------------------------------------------
 # Various functions taken from O1 BBH analysis
 #------------------------------------------------------------------------------
-def estimate_2d_post(params, post, data2=None,
+def estimate_2d_post(post, data2=None,
                      xlow=None, xhigh=None, ylow=None, yhigh=None, transform=None,
                      gridsize=500, **kwargs):
-    x = post[params[0]]
-    y = post[params[1]]
+    x = post[0]
+    y = post[1]
 
     if transform is None:
         transform = lambda x: x
@@ -208,7 +208,7 @@ def plot_bounded_2d_kde(data, data2=None, contour_data=None, levels=None,
     return ax
 
 #------------------------------------------------------------------------------
-def plot_2d(params, post, contour_data, labels=None,
+def plot_2d(post, contour_data, labels=None,
             cmap='Purples', gridsize=500, levels=[.5, .9], **kwargs):
     """ **kwargs are passed to plot_bounded_2d_kde """
     if labels is None:
