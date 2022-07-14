@@ -1,7 +1,7 @@
 from __future__ import division # in case this script is used in python 2 
 import h5py as h5
 
-
+import os
 import numpy as np
 import string
 
@@ -20,9 +20,9 @@ from matplotlib.ticker import (FormatStrFormatter,
                                AutoMinorLocator)
 #Set latex environment for plots/labels
 import matplotlib
-matplotlib.rc('font', **{'family': 'sans-serif'})#, 'sans-serif': ['Helvetica']})
-matplotlib.rc('text', usetex=True)
-matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
+# matplotlib.rc('font', **{'family': 'sans-serif'})#, 'sans-serif': ['Helvetica']})
+# matplotlib.rc('text', usetex=True)
+# matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath'])
 
 
 
@@ -41,8 +41,8 @@ from scipy.spatial.distance import cdist
 
 rc('font', family='serif', weight = 'bold')
 rc('text', usetex=True)
-matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
-matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
+# matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
+matplotlib.rcParams['text.latex.preamble'] = r'\boldmath'
 rc('axes', linewidth=2)
 
 matplotlib.rcParams['xtick.major.size'] = 12
@@ -57,7 +57,7 @@ rc('axes', linewidth=2)
 
 
 def layoutAxes(ax, nameX='', nameY='', \
-               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True):
+               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True, ):
     """
     Tiny code to do the layout for axes in matplotlib
     """
@@ -86,9 +86,15 @@ def layoutAxes(ax, nameX='', nameY='', \
         ax.spines[axis].set_linewidth(1.2)
     ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
     ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
-    ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
-    ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
-    
+
+
+    if labelSizeMajor==10:
+        ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
+        ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
+    else:
+        ax.set_xlabel(nameX, fontsize=labelSizeMajor,labelpad=labelpad)#,fontweight='bold')
+        ax.set_ylabel(nameY, fontsize=labelSizeMajor,labelpad=labelpad)#, fontweight='bold')  
+
     if setMinor==True:
         # add minor ticks:
         ax.xaxis.set_minor_locator(AutoMinorLocator())
@@ -98,7 +104,7 @@ def layoutAxes(ax, nameX='', nameY='', \
 
 
 def layoutAxesNoXandYlabel(ax, nameX='', nameY='', \
-               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True):
+               labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None):
     """
     Tiny code to do the layout for axes in matplotlib
     """
@@ -169,7 +175,12 @@ def layoutAxesNoXlabel(ax, nameX='', nameY='', \
     ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
     ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
     # ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
-    ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad, rotation=rotation, va="center")#, fontweight='bold')    
+    if labelSizeMajor==10:
+        # ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad)#,fontweight='bold')
+        ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
+    else:
+        # ax.set_xlabel(nameX, fontsize=labelSizeMajor,labelpad=labelpad)#,fontweight='bold')
+        ax.set_ylabel(nameY, fontsize=labelSizeMajor,labelpad=labelpad)#, fontweight='bold')     
 
 
 
@@ -216,7 +227,7 @@ def layoutAxesNoYlabel(ax, nameX='', nameY='', \
         ax.spines[axis].set_linewidth(1.2)
     ax.tick_params(length=tickLengthMajor, width=tickWidthMajor, which='major')
     ax.tick_params(length=tickLengthMinor, width=tickWidthMinor, which='minor')
-    ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad, rotation=rotation, va="center")#,fontweight='bold')
+    ax.set_xlabel(nameX, fontsize=fontsize,labelpad=labelpad, rotation=rotation)#,fontweight='bold')
     # ax.set_ylabel(nameY, fontsize=fontsize,labelpad=labelpad)#, fontweight='bold')    
     
     if setMinor==True:
@@ -1317,5 +1328,270 @@ def getXmomentOfMT(Seeds, maxCounter=10):
 # ChannelLabelListShort = ['1','2','3','4','1b','2b', '5' ] # shorter notation of ChannelLabelList
 
 
+
+
+class COspin(object):
+    """
+    This class calculates the Black Hole (BH) or Neutron Star (NS) spin
+    based on a given spin function/model 
+    
+    """
+    
+    
+    def __init__(self, data_path=None, state='he_depletion'):
+    
+        self.path                = data_path
+        if (self.path is None):
+            print("Just to double check you create instance of ClassCOMPAS without path/Data")
+        elif not  os.path.isfile(data_path):
+            raise ValueError("h5 file not found. Wrong path given?", "path given = %s"%data_path)
+        elif os.path.isfile(data_path):
+            self.h5file           = h5.File(data_path)
+            
+            
+        self.spin_model = None 
+        self.whichweight = None 
+        self.state = state 
+    
+        
+    def convert_a_to_P_circular(separation, M1, M2):
+        """calculate Period from separation
+        separation is separation (needs to be given in astropy units)
+        M1 and M2 are masses of the binary
+
+        """
+
+        period = 2*np.pi * np.sqrt(separation**3/(const.G*(M1+M2)))
+
+        return period   
+        
+        
+    def setCOMPASData(self):
+        """ reads in some of the COMPAS parameters needed from hdf5 file """
+        
+        fDCO      = self.h5file['doubleCompactObjects'] # hdf5 file with the DCO information
+        fSN       = self.h5file['supernovae']  # hdf5 file with the SN information
+        #
+        self.M1 = fDCO['M1'][...].squeeze()   # Compact object mass [Msun] of the initially more massive star
+        self.M2 = fDCO['M2'][...].squeeze()  # Compact object mass [Msun] of the initially less massive star
+        
+        self.seedsDCO = fDCO['seed'][...].squeeze()  # get the seeds in the DCO file 
+        self.seedsSN = fSN['randomSeed'][...].squeeze()    # get the seeds in the SN file 
+        indices = np.sort(np.unique(self.seedsSN[1::2], return_index=True)[1])
+        maskSNdco = np.in1d(self.seedsSN,  self.seedsDCO) # mask in the SNe files the SNe that correspond to our DCO
+        whichSN = fSN['whichStar'][...].squeeze()[maskSNdco]  # this is 1 if the initially primary star goes SN and 2 if the secondary goes supernova
+        whichSN1 = whichSN[::2][indices] # get whichStar for the first SN   (there are 2 SNe for all DCOs)       
+
+        self.separationPreSN2= fSN['separationBefore'][...].squeeze()[maskSNdco][1::2][indices] # the separation just before each SN  in [Rsun], we need only the separation for the second SN to occur, so the [1::2]  
+        self.mWR =  fSN['MassStarSN'][...].squeeze()[maskSNdco][1::2][indices]   # obtain the CO core mass before the SNe
+        self.MassStarCompanion = fSN['MassStarCompanion'][...].squeeze()[maskSNdco][1::2][indices]  # mass of the companion star (BH) in Msun
+
+        # calculate period using Kepler III law 
+        self.PeriodPreSN2 = convert_a_to_P_circular(separation=self.separationPreSN2*u.Rsun, M1=self.mWR*u.Msun, M2=self.MassStarCompanion*u.Msun)  # obtain the Period before the SNe
+        self.PeriodPreSN2 = self.PeriodPreSN2.to(u.d).value
+        
+        self.st1 = fDCO['stellarType1'][...].squeeze()   # obtain the final stellar type of the Primary 
+        self.st2 = fDCO['stellarType2'][...].squeeze()   # obtain the final stellar type of the Secondary
+        
+        self.spinM1 = np.zeros_like(self.M1)  # start by giving all primaries zero spin 
+        self.spinM2 = np.zeros_like(self.M2)  # start by giving all secondaries zero spin 
+
+        # did M1 form in the first SN?
+        self.M1formedFirst =  (whichSN1==1) # mask that is 1 if the  compact object M1 formed first in the DCO
+        # did M2 form in the first SN?
+        self.M2formedFirst =  (whichSN1==2)  # mask that is 1 if the compact object M2 formed first in the DCO
+
+        # Supernovae properties 
+        # ['MassCOCoreSN',
+        #  'MassCoreSN',
+        #  'MassStarCompanion', 
+        #  'MassStarSN', 
+        #  'Survived',
+        #  'eccentricityBefore', 
+        #  'experiencedRLOF', 
+        #  'fallback', 
+        #  'previousStellarTypeCompanion',
+        #  'previousStellarTypeSN',
+        #  'randomSeed', 
+        #  'separationBefore', 
+        #  'whichStar']
+
+
+
+
+
+
+
+    
+    def QinSpin(self):
+        """
+        Returns spinM1 and spinM2, the spins of the compact objects formed from
+        the initial most massive star (M1) and initial least massive star (M2), respectively. 
+        
+        In this approximation only a BH that is formed second can be tidally spun up, if its 
+        pre-SN separation is tight enough. 
+        
+        see Qin+18, approximation originally given in https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.3682C 
+        (and Equation 5 in https://arxiv.org/pdf/2103.02608.pdf)
+        
+        """
+        
+        m_, c_ = -5./3, 0.5 # from Qin + 2018 
+
+        # if BH & formed second, calculate spin with Qin+18 approximation
+        maskGiveSpin1 = ((self.st1==14) & (self.M1formedFirst==0))
+        maskGiveSpin2 = ((self.st2==14) & (self.M2formedFirst==0))
+        
+        # # first mask super tight NSBH that will get spin 1
+        maskSpin1 = (np.log10(self.PeriodPreSN2) < -0.3) & (maskGiveSpin1 ==1)                        
+        maskSpin2 = (np.log10(self.PeriodPreSN2) < -0.3) & (maskGiveSpin2 ==1)
+        self.spinM1[maskSpin1] = np.ones(np.sum(maskSpin1)) # fill with ones 
+        self.spinM2[maskSpin2] = np.ones(np.sum(maskSpin2)) # fill with ones 
+  
+        
+        # now assign the spin for systems that lie in between the 0 and 1 spin using the fitting formulae
+        maskChi_var1 = (np.log10(self.PeriodPreSN2) > -0.3) &  (np.log10(self.PeriodPreSN2) < 0.3)  &(maskGiveSpin1==1)
+        self.spinM1[maskChi_var1] =  m_ * np.log10(self.PeriodPreSN2[maskChi_var1])  + c_   
+             
+        maskChi_var2 = (np.log10(self.PeriodPreSN2) > -0.3) &  (np.log10(self.PeriodPreSN2) < 0.3)  &(maskGiveSpin2==1)
+        self.spinM2[maskChi_var2] =  m_ * np.log10(self.PeriodPreSN2[maskChi_var2])  + c_   
+              
+    
+        return self.spinM1, self.spinM2
+
+    
+    
+    def calculate_alpha_beta_Bavera21(self, c1_alpha, c2_alpha, c3_alpha,  c1_beta,  c2_beta,  c3_beta):
+
+
+        alpha = self.function_f_Bavera21(c1_alpha, c2_alpha, c3_alpha)
+        beta  = self.function_f_Bavera21(c1_beta,  c2_beta,  c3_beta)
+
+        return alpha, beta
+
+    def function_f_Bavera21(self, c1, c2, c3):
+        """
+        m_WR with units using astropy
+
+
+        """
+
+        top = -c1
+        bottom = c2 + np.exp(-c3*self.mWR)
+
+        f = top/bottom
+
+
+        return f        
+        
+        
+    # def BaveraSpin(self):
+    #     """
+    #     Returns spinM1 and spinM2, the spins of the compact objects formed from
+    #     the initial most massive star (M1) and initial least massive star (M2), respectively. 
+        
+    #     In this approximation only a BH that is formed second can be tidally spun up, if its 
+    #     pre-SN separation is tight enough. 
+
+    #     based on Eq 1 and 2 from https://arxiv.org/pdf/2105.09077.pdf
+    
+    
+    #     """
+
+    #     # numerical coefficients form text below Eq 2
+    #     # we use the values at helium depletion, since we later on use the C/O core mass. 
+    #     c1_alpha, c2_alpha, c3_alpha =  0.059305, 0.035552, 0.270245
+    #     c1_beta,  c2_beta, c3_beta   =  0.026960, 0.011001, 0.420739
+        
+    #     alpha, beta = self.calculate_alpha_beta_Bavera21(c1_alpha, c2_alpha, c3_alpha,  c1_beta,  c2_beta,  c3_beta)      
+        
+
+    #     # if BH & formed second, calculate spin with Qin+18 approximation
+    #     maskGiveSpin1 = ((self.st1==14) & (self.M1formedFirst==0))
+    #     maskGiveSpin2 = ((self.st2==14) & (self.M2formedFirst==0))
+        
+    #     # 
+    #     # mask shorter than 1 day & a BH formed second 
+    #     maskSpin1 = (np.log10(self.PeriodPreSN2) < 1) & (maskGiveSpin1 ==1)                        
+    #     maskSpin2 = (np.log10(self.PeriodPreSN2) < 1) & (maskGiveSpin2 ==1)
+        
+    #     first_term = (alpha* (np.log10(self.PeriodPreSN2)**2)) 
+    #     second_term =  ( beta * np.log10(self.PeriodPreSN2))  
+    #     self.spinM1[maskSpin1]  =  first_term[maskSpin1]  + second_term[maskSpin1]  
+    #     self.spinM2[maskSpin2]  =  first_term[maskSpin2]  + second_term[maskSpin2] 
+        
+    #     # HAVE TO ADD 
+    #     # mask_  = (self.PeriodPreSN2<0.1)
+    #     # self.spinM1[self.spinM1<0] = np.zeros(np.sum(mask_))
+    #     # self.spinM2[self.spinM2<0] = np.zeros(np.sum(mask_))
+
+
+    #     mask_ = (self.spinM1<0)
+    #     self.spinM1[self.spinM1<0] = np.zeros(np.sum(mask_))
+    #     mask_ = (self.spinM2<0)
+    #     self.spinM2[self.spinM2<0] = np.zeros(np.sum(mask_))
+        
+        
+    #     return self.spinM1, self.spinM2
+    
+    def BaveraSpin(self): 
+        if self.state == 'c_depletion':
+            c1a = 0.051237
+            c2a = 0.029928
+            c3a = 0.282998
+            c1b = 0.027090
+            c2b = 0.010905
+            c3b = 0.422213
+        elif self.state == 'he_depletion':
+            c1a = 0.059305
+            c2a = 0.035552
+            c3a = 0.270245
+            c1b = 0.026960
+            c2b = 0.011001
+            c3b = 0.420739
+        else:
+            raise ValueError('state not supported!')
+        
+        # a_BH2(p >= 1) = 0 
+        a_BH2 = np.zeros(len(self.PeriodPreSN2)) # spin 
+        
+        def constant(m_WR, c1, c2, c3):
+            return -c1/(c2+np.exp(-c3*m_WR))
+        
+        alpha = constant(self.mWR[self.PeriodPreSN2<1.], c1a, c2a, c3a)
+        beta = constant(self.mWR[self.PeriodPreSN2<1.], c1b, c2b, c3b)
+
+
+
+        a_BH2[self.PeriodPreSN2<1.] = alpha*np.log10(self.PeriodPreSN2[self.PeriodPreSN2<1.])**2+beta*np.log10(self.PeriodPreSN2[self.PeriodPreSN2<1.])
+        
+
+        # if BH & formed second, calculate spin with Qin+18 approximation
+        maskGiveSpin1 = ((self.st1==14) & (self.M1formedFirst==0))
+        maskGiveSpin2 = ((self.st2==14) & (self.M2formedFirst==0))
+
+        self.spinM1[maskGiveSpin1]  =  a_BH2[maskGiveSpin1]
+        self.spinM2[maskGiveSpin2]  =  a_BH2[maskGiveSpin2]
+
+        # boundary conditions,if period < 0.09, make spin 1 
+        # self.spinM1[self.PeriodPreSN2<0.09] = np.ones_like(self.PeriodPreSN2[self.PeriodPreSN2<0.09]) # fill with ones 
+        # self.spinM2[self.PeriodPreSN2<0.09] = np.ones_like(self.PeriodPreSN2[self.PeriodPreSN2<0.09]) # fill with ones 
+        # print(len(self.PeriodPreSN2[self.PeriodPreSN2<0.09]), ' out of boundary condition Period')
+
+        # boundary conditions if M_WR < 8Msun make spin 0
+        # self.spinM1[self.mWR<8] = np.zeros_like(self.PeriodPreSN2[self.mWR<8]) # fill with ones 
+        # self.spinM2[self.mWR<8] = np.zeros_like(self.PeriodPreSN2[self.mWR<8]) # fill with ones 
+        # print(len(self.mWR[self.mWR<8]), ' out of boundary condition Wolf Rayet Mass')
+
+        print(len(self.spinM1[self.spinM1<0]), ' systems had negative spin because they are outside of the boundary conditions; we set these to 0 ')
+        self.spinM1[self.spinM1<0] = np.zeros_like(self.spinM1[self.spinM1<0])
+        self.spinM2[self.spinM2<0] = np.zeros_like(self.spinM2[self.spinM2<0])
+
+
+
+        return self.spinM1, self.spinM2
+
+    
+    
 
 

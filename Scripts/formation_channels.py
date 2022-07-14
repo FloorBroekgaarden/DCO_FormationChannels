@@ -104,7 +104,7 @@ def identify_formation_channels(seeds, file):
     channels : `int/array`
         List of channels through with each binary formed
     """
-    all_rlof_seeds = get_COMPAS_vars(file, "RLOF", "randomSeed")
+    all_rlof_seeds = get_COMPAS_vars(file, "RLOF", "randomSeed") 
     rlof_mask = np.isin(all_rlof_seeds, seeds)
     rlof_seeds = all_rlof_seeds[rlof_mask]
 
