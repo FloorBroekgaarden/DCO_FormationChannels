@@ -1,5 +1,5 @@
 
-from __future__ import division
+# from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py as h5
@@ -8,22 +8,27 @@ import sys
 import copy
 #Quick fudge to make import from ../Scripts work
 
-sys.path.append('/Users/floorbroekgaarden/Projects/BHNS_project/Scripts')
+sys.path.append('../Scripts')
 
 
-import gc
+# import gc
 
 
-import ClassCosmicIntegrator  as CI #Given settings and redshifts returns rates (2D arrays) Loads the data
-import coencodeVarious        as CV
+# import ClassCosmicIntegrator  as CI #Given settings and redshifts returns rates (2D arrays) Loads the data
+# import coencodeVarious        as CV
 from PostProcessingScripts import * 
-import ClassCOMPAS     as CC ###
-import ClassFormationChannels as FC 
-from ClassFormationChannels_5mainchannels import * 
+from formation_channels import * 
+
+
 
 import pandas as pd
 from astropy import units as u
 from astropy import constants as const
+
+
+
+##### I THINK THIS IS AN OLD FILE #### 
+
 
 
 dictDCOtypeDCOlabel = {'BBH':'BHBH', 'BNS':'NSNS', 'BHNS':'BHNS'}

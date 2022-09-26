@@ -56,6 +56,9 @@ fs = 24 # fontsize for plots
 rc('axes', linewidth=2)
 
 
+
+
+
 def layoutAxes(ax, nameX='', nameY='', \
                labelSizeMajor = 10, fontsize = 25, second=False, labelpad=None, setMinor=True, ):
     """
@@ -101,6 +104,7 @@ def layoutAxes(ax, nameX='', nameY='', \
         ax.yaxis.set_minor_locator(AutoMinorLocator())
 
     return ax
+
 
 
 def layoutAxesNoXandYlabel(ax, nameX='', nameY='', \
@@ -268,7 +272,7 @@ zorderlist = { 'stable B':10, 'stable B no CEE':13, \
 
 
 
-dictChannelsBHNSListBolt = [r'\textbf{(I) Classic}', \
+dictChannelsBHNSListBolt = [r'\textbf{(I) Classic}', r'\textbf{(X) Classic: case A}', r'\textbf{(X) OSMT: case A}',\
                             r'\textbf{(II) Only stable mass transfer}',\
                             r'\textbf{(III) Single-core CE as first mass transfer}',\
                              r'\textbf{(IV) Double-core CE as first mass transfer}', r'\textbf{(V) Other}']
@@ -306,6 +310,12 @@ modelDirList = ['fiducial', 'massTransferEfficiencyFixed_0_25', 'massTransferEff
 alphabetDirDict =  {BPSnameslist[i]: modelDirList[i] for i in range(len(BPSnameslist))}
 BPScolors       = sns.color_palette("husl", nModels)
 colorDirDict =  {BPSnameslist[i]: BPScolors[i] for i in range(len(BPSnameslist))}
+
+
+markershapes = ["*", "o", "v",  "p", "H", "^", ">", 'X', "+","<", 'x', "3","d","1", "|", "D", "P", "X", "+", "d"]
+dictMarkerShape = {BPSnameslist[i]: markershapes[i] for i in range(len(BPSnameslist))}
+
+
 
 # physicalNamesBPSmodels = [r'\textbf{fiducial}',\
 #                            r'$\beta=0.25$', r'$\beta=0.5$',  r'$\beta=0.75$',r'\textbf{unstable case BB}',r'\textbf{unstable case BB + optimistic CE}',\
@@ -1593,5 +1603,29 @@ class COspin(object):
 
     
     
+
+
+
+
+MSSFRnameslist = []
+MSSFRnameslist.append('000') # add phenomenological 
+
+for ind_SFR, SFR in enumerate(SFRs):
+    ind_x = ind_SFR+1
+    for ind_GSMF, GSMF in enumerate(GSMFs):
+        ind_y = ind_GSMF + 1
+        for ind_MZ, MZ in enumerate(MZs):
+            ind_z = ind_MZ +1
+
+            MSSFRnameslist.append('%s%s%s'%(ind_x, ind_y, ind_z))
+            
+           
+print('obtain index of the SFRD models that we want to highlight')
+
+MSSFRnameslistCSV = ['.0.0.0', '.1.1.1', '.1.1.2', '.1.1.3', '.1.2.1', '.1.2.2', '.1.2.3', '.1.3.1', '.1.3.2', '.1.3.3', '.2.1.1', '.2.1.2', '.2.1.3', '.2.2.1', '.2.2.2', '.2.2.3', '.2.3.1', '.2.3.2', '.2.3.3', '.3.1.1', '.3.1.2', '.3.1.3', '.3.2.1', '.3.2.2', '.3.2.3', '.3.3.1', '.3.3.2', '.3.3.3']
+        
+MSSFRheaderDict =  {'000':'.0.0.0', '111':'.1.1.1', '112':'.1.1.2', '113':'.1.1.3', '121':'.1.2.1', '122':'.1.2.2', '123':'.1.2.3', '131':'.1.3.1', '132':'.1.3.2', '133':'.1.3.3', '211':'.2.1.1',\
+                    '212':'.2.1.2', '213':'.2.1.3', '221':'.2.2.1', '222':'.2.2.2', '223':'.2.2.3', '231':'.2.3.1', '232':'.2.3.2', '233':'.2.3.3', '311':'.3.1.1', '312':'.3.1.2', '313':'.3.1.3', '321':'.3.2.1', \
+                    '322':'.3.2.2', '323':'.3.2.3', '331':'.3.3.1', '332':'.3.3.2', '333':'.3.3.3'}    
 
 

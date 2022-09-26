@@ -108,6 +108,8 @@ def identify_formation_channels(seeds, file):
     rlof_mask = np.isin(all_rlof_seeds, seeds)
     rlof_seeds = all_rlof_seeds[rlof_mask]
 
+
+
     moments = find_mass_transfer_moments(rlof_seeds)
 
     rlof_primary, rlof_secondary, cee_flag,\
@@ -168,10 +170,41 @@ def identify_formation_channels(seeds, file):
                                          stellar_type_2 < 7))
     double_core_mask = np.isin(seeds, rlof_seeds[double_core])
 
+
+    #####################################################
+    ####################### extra channels   ##########
+    #####################################################
+
+    all_cee_seeds = get_COMPAS_vars(file, "commonEnvelopes", "randomSeed") 
+    ##  case A MT1 channel & CE 
+
+    # "flagRLOF1" is broken for case A mass transfer 
+    classic_caseA_MT1 = np.logical_and.reduce((moments == 1,
+                                               np.logical_not(cee_flag),
+                                               stellar_type_1 == 1,
+                                               stellar_type_2 == 1))
+
+    ####################################################
+    ## only stable case A MT1 channel 
+    # 1st transfer as classic case A, 2nd transfer unstripped secondary stable RLOF
+    only_stable_caseA_seeds = rlof_seeds[classic_caseA_MT1] 
+    # np.isin(rlof_seeds[classic_caseA_MT1],
+                                   # all_cee_seeds, invert=True)
+    only_stable_caseA_mask = np.isin(seeds, only_stable_caseA_seeds)
+
+    # check if there is a CE, and overwrite these 
+    # 2nd transfer, unstripped secondary RLOF into CE
+    classic_caseA_seeds = np.isin(rlof_seeds[classic_caseA_MT1],
+                                   all_cee_seeds)
+    classic_caseA_mask = np.isin(seeds, classic_caseA_seeds)
+    
+
     channels = np.zeros_like(seeds).astype(int)
     channels[classic_mask] = 1
     channels[only_stable_mask] = 2
     channels[single_core_mask] = 3
     channels[double_core_mask] = 4
+    channels[classic_caseA_mask] = 5
+    channels[only_stable_caseA_mask] = 6
 
     return channels
