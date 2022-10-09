@@ -3,7 +3,7 @@ import sys
 import h5py as h5
 
 #Quick fudge to make import from ../Scripts work
-sys.path.append('../../Scripts')
+sys.path.append('../../../common_code/')
 
 
 from PostProcessingScripts import * 
@@ -220,10 +220,10 @@ def writeToRatesFile_FormationChannelsRatio(BPSmodelName='Z', DCOtype='BHNS'):
 
     stringgg =  'formation_channels_ratio'
     writePath = '/Users/floorbroekgaarden/Projects/GitHub/DCO_FormationChannels/dataFiles/data_Fig_1/Formation_yields_'  + stringgg + '_'  + DCOname + 'fast.csv'     
-    headerDict_intrinsic = {5:'All intrinsic (z=0) [Gpc^{-3} yr^{-1}]',  0:'channel V intrinsic (z=0) [Gpc^{-3} yr^{-1}]',  1:'channel I intrinsic (z=0) [Gpc^{-3} yr^{-1}]', 2:'channel II intrinsic (z=0) [Gpc^{-3} yr^{-1}]',3:'channel III intrinsic (z=0) [Gpc^{-3} yr^{-1}]', 4:'channel IV intrinsic (z=0) [Gpc^{-3} yr^{-1}]'}
-    
-    headerDict_observed  = {5:'All observed (design LVK) [yr^{-1}]',  0:'channel V observed (design LVK) [yr^{-1}]', 1:'channel I observed (design LVK) [yr^{-1}]', 2:'channel II observed (design LVK) [yr^{-1}]', 3:'channel III observed (design LVK) [yr^{-1}]', 4:'channel IV observed (design LVK) [yr^{-1}]'}    
 
+    headerDict_intrinsic = { 5:'Channel VI intrinsic (z=0) ratio',  6:'Channel VII intrinsic (z=0) ratio', 7:'All intrinsic (z=0) [Gpc^{-3} yr^{-1}]',  0:'channel V intrinsic (z=0) ratio',  1:'channel I intrinsic (z=0) ratio', 2:'channel II intrinsic (z=0) ratio',3:'channel III intrinsic (z=0) ratio', 4:'channel IV intrinsic (z=0) ratio'}
+    headerDict_observed  = { 5:'channel VI observed (design LVK) ratio',     6:'channel VII observed (design LVK) ratio',    7:'All observed (design LVK) [yr^{-1}]',     0:'channel V observed (design LVK) ratio', 1:'channel I observed (design LVK) ratio', 2:'channel II observed (design LVK) ratio', 3:'channel III observed (design LVK) ratio', 4:'channel IV observed (design LVK) ratio'}    
+    enumerate_list = range(8)
 
     
     # get intrinsic weights
@@ -243,7 +243,8 @@ def writeToRatesFile_FormationChannelsRatio(BPSmodelName='Z', DCOtype='BHNS'):
     df = pd.read_csv(writePath, index_col=0)
     
 
-    for nrC, Channel in enumerate(range(6)):          
+    for nrC, Channel in enumerate(enumerate_list):     
+        print('now at Channel ', Channel)     
 
     #           #Get the seeds that relate to sorted indices
         mask_C  = (channels==Channel)
@@ -262,14 +263,14 @@ def writeToRatesFile_FormationChannelsRatio(BPSmodelName='Z', DCOtype='BHNS'):
 
 
 
-            if nrC==5: 
+            if nrC==enumerate_list[-1]: 
                 # TOTAL RATE
                 intrinsicRates[ind_mssfr] = np.sum(w_int)
                 detectedRates[ind_mssfr]  = np.sum(w_det)  
             else:
                 # CHANNEL RATE 
-                intrinsicRates[ind_mssfr] = np.sum(w_int[mask_C] / np.sum(w_int))
-                detectedRates[ind_mssfr]  = np.sum(w_det[mask_C] / np.sum(w_det))          
+                intrinsicRates[ind_mssfr] = np.sum(w_int[mask_C])/np.sum(w_int)
+                detectedRates[ind_mssfr]  = np.sum(w_det[mask_C])/np.sum(w_det)          
 
             
 
@@ -291,6 +292,8 @@ def writeToRatesFile_FormationChannelsRatio(BPSmodelName='Z', DCOtype='BHNS'):
 
 
 
+
+
 def initalize_formationChannelsRatio(DCOname):
 
     stringgg =  'formation_channels_ratio'
@@ -304,75 +307,37 @@ def initalize_formationChannelsRatio(DCOname):
     BPSnameslist = list(string.ascii_uppercase)[0:nModels]
 
     NAMES = []
-    # stringgg =  'AllDCOsimulation_formation_channels'
+    stringgg =  'AllDCOsimulation_formation_channels'
+
+
+
+    headerDict_intrinsic = { 5:'Channel VI intrinsic (z=0) ratio',  6:'Channel VII intrinsic (z=0) ratio', 7:'All intrinsic (z=0) [Gpc^{-3} yr^{-1}]',  0:'channel V intrinsic (z=0) ratio',  1:'channel I intrinsic (z=0) ratio', 2:'channel II intrinsic (z=0) ratio',3:'channel III intrinsic (z=0) ratio', 4:'channel IV intrinsic (z=0) ratio'}
+    headerDict_observed  = { 5:'channel VI observed (design LVK) ratio',     6:'channel VII observed (design LVK) ratio',    7:'All observed (design LVK) [yr^{-1}]',     0:'channel V observed (design LVK) ratio', 1:'channel I observed (design LVK) ratio', 2:'channel II observed (design LVK) ratio', 3:'channel III observed (design LVK) ratio', 4:'channel IV observed (design LVK) ratio'}    
+    enumerate_list = range(8)
     
-
-
-
     for ind_l, BPSmodelName in enumerate(BPSnameslist):
-        # str_z0 = str(L + ' intrinsic (z=0) [Gpc^{-3} yr^{-1}]')
-        # str_obs = str(L + ' observed (design LVK) [yr^{-1}]')
-
-        namez0 = BPSmodelName + '_' +'All intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs = BPSmodelName + '_' +'All observed (design LVK) [yr^{-1}]'
-
-
-        # namez0_oth = BPSmodelName + '_' +'Other intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        # nameObs_oth = BPSmodelName +'_' + 'Other observed (design LVK) [yr^{-1}]'
-
-        namez0_I = BPSmodelName + '_' +'channel I intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs_I = BPSmodelName +'_' + 'channel I observed (design LVK) [yr^{-1}]'
-        namez0_II = BPSmodelName + '_' +'channel II intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs_II = BPSmodelName + '_' +'channel II observed (design LVK) [yr^{-1}]'
-        namez0_III = BPSmodelName +'_' + 'channel III intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs_III = BPSmodelName +'_' + 'channel III observed (design LVK) [yr^{-1}]'
-        namez0_IV = BPSmodelName + '_' +'channel IV intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs_IV = BPSmodelName + '_' +'channel IV observed (design LVK) [yr^{-1}]'
-        namez0_V = BPSmodelName + '_' +'channel V intrinsic (z=0) [Gpc^{-3} yr^{-1}]'
-        nameObs_V = BPSmodelName + '_' +'channel V observed (design LVK) [yr^{-1}]'
-
-
-
-
-        NAMES.append(namez0)
-        NAMES.append(nameObs)
-
-        # NAMES.append(namez0_oth)
-        # NAMES.append(nameObs_oth)
-
-        NAMES.append(namez0_I)
-        NAMES.append(nameObs_I)
-        NAMES.append(namez0_II)
-        NAMES.append(nameObs_II)
-        NAMES.append(namez0_III)
-        NAMES.append(nameObs_III)
-        NAMES.append(namez0_IV)
-        NAMES.append(nameObs_IV)
-        NAMES.append(namez0_V)
-        NAMES.append(nameObs_V)
-
-
-
-
-
-
+        for ind_c, Channel in enumerate(enumerate_list):
+            namez0 = BPSmodelName + '_' + headerDict_intrinsic[Channel]
+            nameObs = BPSmodelName + '_' + headerDict_observed[Channel]            
+            NAMES.append(namez0)
+            NAMES.append(nameObs)
 
     datas=[]
 
     for i in range(len(BPSnameslist)):
-        for ii in range(6):
-            datas.append(np.zeros_like(np.zeros(len(MSSFRnameslist))))
-            datas.append(np.zeros_like(np.zeros(len(MSSFRnameslist))))
-
-
+        for ii in range(8):
+            datas.append(np.zeros_like(MSSFRnameslist))
+            datas.append(np.zeros_like(MSSFRnameslist))
+        
+        
     df = pd.DataFrame(data=datas, index=NAMES, columns=MSSFRnameslistCSV).T
     df.columns =   df.columns.map(str)
     df.index.names = ['xyz']
     df.columns.names = ['m']
 
-    # print(df) 
 
     df.to_csv(writePath)
+
 
 
 
@@ -391,8 +356,8 @@ def initalize_formationChannelsRatio(DCOname):
 
 
 
-INITIALIZE_FormationChannelsRatio = False #True
-INITIALIZE_FormationChannels = True
+INITIALIZE_FormationChannelsRatio = False #True #False #True
+INITIALIZE_FormationChannels = False #True
 
 
 
@@ -416,15 +381,15 @@ if INITIALIZE_FormationChannels==True:
 
 
 
-runFormationChannels=True
-runFormationChannelsRatio= False #True
+runFormationChannels=False
+runFormationChannelsRatio=True # False #True
 
 
 
 if runFormationChannelsRatio ==True:
-    for BPS in  BPSnameslist[:]:
+    for BPS in  BPSnameslist[-2:-1]:
         print(BPS)
-        for DCOtype in ['BHNS','BBH', 'BNS']:
+        for DCOtype in ['BBH']: #'BHNS',
             print('at DCOtype =', DCOtype)
             writeToRatesFile_FormationChannelsRatio(BPSmodelName=BPS, DCOtype=DCOtype)
             print('done with ', BPS)
