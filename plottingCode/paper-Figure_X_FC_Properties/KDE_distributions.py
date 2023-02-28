@@ -75,7 +75,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
     
     #if (mode in ['spin_PDF', 'spin_fraction', 'spinOne_fraction', 'spinTwo_fraction', 'm1spin_or_m2spin_fraction', 'spin_CDF' ]) | (xparam in ['chi_of_spinning_BH', 'chi_effective', 'log10_t_delay']):
     
-    if xparam in ['spin_1_LVK', 'spin_2_LVK', 'chi_of_spinning_BH', 'chi_effective', 'log10_t_delay']:
+    if xparam in ['spin_1_LVK', 'spin_2_LVK', 'chi_of_spinning_BH', 'chi_effective']:
         spin = COspin(data_path=path, state='he_depletion')  # set class 
         spin.setCOMPASData() # reads in the COMPAS DCO parameters 
         spinZAMSM1, spinZAMSM2  = spin.BaveraSpin() #ZAMS M1 SPIN 
@@ -165,7 +165,8 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         param_x = np.log10(param_x)
         nameX = r'$t_{\rm{delay}} \ [\rm{Gyr}]$'
         nameY = r'\textbf{PDF}'  
-        xx = np.linspace(-4,2,1000)  
+        xx = np.linspace(-4,2,500)  
+        print('obtained params')
 
     
     if (mode=='MRR_PDF') | (mode=='spin_PDF'):
@@ -188,7 +189,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         raise ValueError("the provided `mode` is not recognized, the value given is %s"%mode)
         
     
-    estimator = FFTKDE(kernel='biweight', bw=bw)      
+      
     
     if plotYlog==True:       
         axe.set_yscale('log')
@@ -263,7 +264,12 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
          
                     if histtype=='kde':
+                        print('running kde ')
                         # plot for formation channel 
+
+                        # edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
+                        estimator = FFTKDE(kernel='biweight', bw='ISJ') #bw=bw)    
+
                         yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
                         # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
                         rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
@@ -274,9 +280,6 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                         axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
 
                     elif histtype=='hist':
-
-
-
                         # import astropy.stats
                         edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
 
@@ -360,6 +363,18 @@ def set_limits(xparam, DCOtype):
             ylim_threshold = 0.0004 
             xlim, ylim = [0, 1], [0.001, 10]  
 
+    elif xparam=='log10_t_delay':
+            ylim_threshold = 0.0004 
+            xlim, ylim = [-4, 2], [0.001, 10]  
+
+            if DCOtype=='BHNS':
+                bw = 0.05
+            elif DCOtype=='BNS':
+                bw = 0.1
+            elif DCOtype=='BBH':
+                bw = 0.05
+
+
     return xlim, ylim,  bw, ylim_threshold
 
 
@@ -418,11 +433,12 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 # plot_param_fc(xparam = 'mass_ratio_LVK', plotYlog = True)
 
 ####### plot spins 
-plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'],histtype='hist')
+# plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
 # plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
 
 
+plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BNS', 'BHNS', 'BBH'])
 
 
 
