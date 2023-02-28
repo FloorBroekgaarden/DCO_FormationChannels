@@ -5,7 +5,7 @@ from KDEpy import FFTKDE
 sys.path.append('../../../common_code')
 from PostProcessingScripts import * 
 from formation_channels import * 
-
+import astropy.stats
 
 
 ##########
@@ -28,7 +28,7 @@ channelList = ['classic', 'stable B no CEE', 'vii',  'immediate CE',  r'double-c
 
 def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
                           spin_threshold='None', bw=0.01, xlim=[0,1], ylim=[0,1],\
-                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH'):#, mssfr='112'):
+                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde'):#, mssfr='112'):
     
     fs_l = 28 # label fontsize
     fs_major=34
@@ -137,6 +137,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         nameX = r'$\chi_1$'
         nameY = r'\textbf{PDF}'
         xx = np.linspace(-2,2,1000)
+        # xx = np.linspace(0,1,100)
 
     elif xparam=='spin_2_LVK':
         param_x = spinLVKM1
@@ -199,6 +200,9 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
         yy_max = np.zeros_like(xx)
         yy_min = np.ones_like(xx) *5
+
+        yy_max_hist = np.zeros_like(xx[1:])
+        yy_min_hist = np.ones_like(xx[1:]) *5
         # yy_max_tot = np.zeros_like(xx)
         # yy_min_tot = np.ones_like(xx) *5
 
@@ -258,22 +262,34 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                     #     axe.plot(xx, yy_MRR,    color='k', lw=3, zorder=2, alpha=1, ls=ls_)
 
          
+                    if histtype=='kde':
+                        # plot for formation channel 
+                        yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
+                        # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
+                        rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
+                        yy_MRR *= rel_weight_MRR
+                        yy_min = np.minimum(yy_min, yy_MRR)
+                        yy_max = np.maximum(yy_max, yy_MRR)
+                        # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                        axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
 
-                    # plot for formation channel 
-                    yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
-                    # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
-                    rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
-                    yy_MRR *= rel_weight_MRR
-                    # rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
+                    elif histtype=='hist':
 
 
-                    yy_min = np.minimum(yy_min, yy_MRR)
-                    yy_max = np.maximum(yy_max, yy_MRR)
 
-                    # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                    axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                        # import astropy.stats
+                        edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
 
-                     
+                        hist, bin_edge = np.histogram(param_x[mask_MRR], weights = w[mask_MRR], bins=edges)
+                        center_bins = (bin_edge[:-1] + bin_edge[1:])/2.
+                        binwidth = np.diff(bin_edge)
+                        rel_weight_MRR    = (np.sum(w[mask_MRR])  / (np.sum(w))) / binwidth
+                        yy_MRR = rel_weight_MRR*hist
+                        # yy_min = np.minimum(yy_min[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
+                        # yy_max = np.maximum(yy_max[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
+                        axe.plot(center_bins, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+
+                         
                         
                     
                 else:
@@ -284,10 +300,12 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
             # if len(w[mask_MRR]):
             #     #    plot total 
-            axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
+            # if histtype=='kde':
+            # axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
             # axe.fill_between(xx, y1=yy_min_tot, y2=yy_max_tot,   color='gray', alpha=1,  zorder=1)
-
-            
+            # elif histtype=='hist':
+                    # axe.fill_between(xx, y1=yy_min_hist,  y2=yy_max_hist,   color=colors_lighter_FC, alpha=1,  zorder=1)
+                
     axe.set_xlim(xlim[0], xlim[1])
     axe.set_ylim(ylim[0], ylim[1])
     axe.grid(True)
@@ -345,7 +363,7 @@ def set_limits(xparam, DCOtype):
     return xlim, ylim,  bw, ylim_threshold
 
 
-def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS']):
+def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde'):
 
 
     for DCOtype in DCOtypeList: 
@@ -368,7 +386,7 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
             xlim, ylim,  bw, ylim_threshold = set_limits(xparam, DCOtype) 
             
             ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_PDF',\
-                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype)
+                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
             # xx = np.linspace(1000,20000,100)
             # yy = np.linspace(1000,20000,100)
             # lw=12
@@ -400,8 +418,8 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 # plot_param_fc(xparam = 'mass_ratio_LVK', plotYlog = True)
 
 ####### plot spins 
-plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
-plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
+plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'],histtype='hist')
+# plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
 
 
