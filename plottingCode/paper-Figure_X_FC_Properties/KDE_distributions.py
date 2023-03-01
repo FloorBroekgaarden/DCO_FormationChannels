@@ -140,7 +140,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         # xx = np.linspace(0,1,100)
 
     elif xparam=='spin_2_LVK':
-        param_x = spinLVKM1
+        param_x = spinLVKM2
         nameX = r'$\chi_2$'
         nameY = r'\textbf{PDF}'
         xx = np.linspace(-2,2,1000)
@@ -165,7 +165,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         param_x = np.log10(param_x)
         nameX = r'$t_{\rm{delay}} \ [\rm{Gyr}]$'
         nameY = r'\textbf{PDF}'  
-        xx = np.linspace(-4,2,500)  
+        xx = np.linspace(-2.5,2,500)  
         print('obtained params')
 
     
@@ -304,7 +304,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
             # if len(w[mask_MRR]):
             #     #    plot total 
             # if histtype=='kde':
-            # axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
+            axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
             # axe.fill_between(xx, y1=yy_min_tot, y2=yy_max_tot,   color='gray', alpha=1,  zorder=1)
             # elif histtype=='hist':
                     # axe.fill_between(xx, y1=yy_min_hist,  y2=yy_max_hist,   color=colors_lighter_FC, alpha=1,  zorder=1)
@@ -327,15 +327,15 @@ def set_limits(xparam, DCOtype):
         if DCOtype=='BBH':
             bw=0.7
             ylim_threshold = 0.0004  
-            xlim, ylim = [0, 48], [0.0003, 0.15]     
+            xlim, ylim = [0, 48], [0.001, 0.15]     
         elif DCOtype=='BHNS':
             bw=0.40
             ylim_threshold = 0.0004 
-            xlim, ylim = [0, 25], [0.0003, .35]
+            xlim, ylim = [0, 25], [0.001, .35]
         elif DCOtype=='BNS':
             bw=0.035
             ylim_threshold = 0.0004 
-            xlim, ylim = [1, 3], [0.0003, 8]
+            xlim, ylim = [1, 3], [0.001, 8]
     elif xparam=='mass_2_LVK':
         if DCOtype=='BBH':
             bw=0.7
@@ -410,7 +410,7 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
             # ax[2,1].plot(xx, yy, color=colors_lighter[0], lw=lw, zorder=15, alpha=1, label=r'\textbf{non-MRR}')#, ls=ls_)
             # ax[2,1].legend(fontsize=fs, frameon=False, loc='upper left')
 
-            plt.tight_layout()  
+            # plt.tight_layout()  
             # plt.subplots_adjust(wspace=0.2, hspace=0.1)
 
             plt.savefig('./singlemodel/'+ xparam+'/super_FC_split_panel_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
@@ -432,16 +432,16 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 ##### plot mass ratios 
 # plot_param_fc(xparam = 'mass_ratio_LVK', plotYlog = True)
 
-####### plot spins 
-# plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
-# plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
 
 
+# plot log10 tdelay
 plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BNS', 'BHNS', 'BBH'])
 
 
-
+####### plot spins 
+# plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
+plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
 
 
