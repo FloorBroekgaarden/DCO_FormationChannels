@@ -163,7 +163,14 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
     elif xparam=='log10_t_delay':
         param_x = (fdata['doubleCompactObjects']['tform'][...].squeeze() +  fdata['doubleCompactObjects']['tc'][...].squeeze() ) / 1000 # divide by 1000 to make it in [Gyr]
         param_x = np.log10(param_x)
-        nameX = r'$t_{\rm{delay}} \ [\rm{Gyr}]$'
+        nameX = r'$\log_{10} t_{\rm{delay}} \ [\rm{Gyr}]$'
+        nameY = r'\textbf{PDF}'  
+        xx = np.linspace(-2.5,2,500)  
+        print('obtained params')
+    elif xparam=='log10_t_delay':
+        param_x = (fdata['doubleCompactObjects']['tform'][...].squeeze() +  fdata['doubleCompactObjects']['tc'][...].squeeze() ) / 1000 # divide by 1000 to make it in [Gyr]
+        param_x = np.log10(param_x)
+        nameX = r'$\log_{10} t_{\rm{delay}} \ [\rm{Gyr}]$'
         nameY = r'\textbf{PDF}'  
         xx = np.linspace(-2.5,2,500)  
         print('obtained params')
@@ -173,8 +180,8 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         nameY = r'\textbf{PDF}'
     elif (mode=='MRR_fraction'):
         nameY = r'$\rm{f}_{\rm{channel}}$'
-    elif (mode=='notMRR_fraction'):
-        nameY = r'$\rm{f}_{\rm{non MRR}}$'
+    # elif (mode=='notMRR_fraction'):
+    #     nameY = r'$\rm{f}_{\rm{non MRR}}$'
     elif (mode=='spin_fraction'):
         nameY =   r'$\rm{f}_{\chi_{1} > %s}$'%spin_threshold
     elif (mode=='m1spin_or_m2spin_fraction'):
@@ -244,6 +251,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                 w = weights_
                 bandwidth=1
 
+
                 if (mode=='MRR_PDF') | (mode=='MRR_fraction') |  (mode=='notMRR_fraction') : 
                     # we want at least 10 datapoint for KDE
                     # if len(w[mask_MRR])>10:
@@ -262,7 +270,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                     #     # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
                     #     axe.plot(xx, yy_MRR,    color='k', lw=3, zorder=2, alpha=1, ls=ls_)
 
-         
+                    
                     if histtype=='kde':
                         # print('running kde ')
                         # plot for formation channel 
@@ -271,13 +279,24 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                         estimator = FFTKDE(kernel='biweight', bw=bw) #bw=bw)    
 
                         yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
-                        # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
                         rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
                         yy_MRR *= rel_weight_MRR
+
+                        if (mode=='MRR_fraction'):
+                            yy_MRR_all_channels = estimator.fit(param_x, weights=w).evaluate(xx) 
+                            
+                            mask_too_small_values = (yy_MRR_all_channels < ylim_threshold)
+                            yy_MRR[mask_too_small_values] = np.zeros(int(np.sum(mask_too_small_values)))
+
+                            axe.plot(xx, yy_MRR/(yy_MRR_all_channels),    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+
+                        elif (mode=='MRR_PDF'):
+                            axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                        else:
+                            print('error, plotting mode not given')
+
                         yy_min = np.minimum(yy_min, yy_MRR)
                         yy_max = np.maximum(yy_max, yy_MRR)
-                        # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                        axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
 
                     elif histtype=='hist':
                         # import astropy.stats
@@ -304,7 +323,8 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
             # if len(w[mask_MRR]):
             #     #    plot total 
             # if histtype=='kde':
-            axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
+            if (mode=='MRR_PDF'):
+                axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
             # axe.fill_between(xx, y1=yy_min_tot, y2=yy_max_tot,   color='gray', alpha=1,  zorder=1)
             # elif histtype=='hist':
                     # axe.fill_between(xx, y1=yy_min_hist,  y2=yy_max_hist,   color=colors_lighter_FC, alpha=1,  zorder=1)
@@ -385,6 +405,7 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 
         print('running for DCOtype = %s, for %s parameter '%(DCOtype, xparam))
         for ind_BPS, BPSmodel in enumerate(BPSnameslist[0:]):
+        # for ind_BPS, BPSmodel in enumerate([BPSnameslist[0]]):
 
             fig, ax = plt.subplots(1,1, figsize=(14,9))#,\
             fs_major=34
@@ -399,6 +420,7 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
                 ax.text(0.02, 0.97, s=s_text , rotation = 0, fontsize=24, color = 'k', va='top', ha = 'left',transform=ax.transAxes)#, weight = 'bold')
 
             xlim, ylim,  bw, ylim_threshold = set_limits(xparam, DCOtype) 
+
             
             ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_PDF',\
                                           spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
@@ -412,7 +434,7 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 
             # plt.tight_layout()  
             # plt.subplots_adjust(wspace=0.2, hspace=0.1)
-
+            #
             plt.savefig('./singlemodel/'+ xparam+'/super_FC_split_panel_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
             plt.savefig('./singlemodel/'+ xparam+'/super_FC_split_panel_%s_%s.png'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight", dpi=600, format='png')
 
@@ -423,8 +445,49 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
     return 
 
 
+
+def plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', ylim_threshold=0.):
+
+
+    for DCOtype in DCOtypeList: 
+
+        print('running for DCOtype = %s, for %s parameter '%(DCOtype, xparam))
+        for ind_BPS, BPSmodel in enumerate(BPSnameslist[0:]):
+        # for ind_BPS, BPSmodel in enumerate([BPSnameslist[0]]):
+
+            fig, ax = plt.subplots(1,1, figsize=(14,6))#,\
+            fs_major=34
+            
+            print('running model %s, for %s'%(BPSmodel, DCOtype))
+            
+
+            s_text = r'$\textbf{model}$ $\textbf{%s}$: '%str(BPSmodel) + alphabetPhysicalNameDictWithEnter[BPSmodel]
+            if xparam!='mass_ratio_LVK':
+                ax.text(0.98, 0.97, s=s_text , rotation = 0, fontsize=24, color = 'k', va='top', ha = 'right',transform=ax.transAxes)#, weight = 'bold')
+            else: 
+                ax.text(0.02, 0.97, s=s_text , rotation = 0, fontsize=24, color = 'k', va='top', ha = 'left',transform=ax.transAxes)#, weight = 'bold')
+
+            xlim, ylim,  bw, ylim_threshold = set_limits(xparam, DCOtype) 
+            ylim = [0,1.1]
+
+            ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_fraction',\
+                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
+
+            #
+            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
+            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s.png'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight", dpi=600, format='png')
+
+            print('done')
+            # plt.show()  
+            # plt.close()
+
+    return 
+
+
+
 ##### PLOT LVKM1 
 # plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True) 
+plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = False) 
 
 #### PLOT LVKM2 
 # plot_param_fc(xparam = 'mass_2_LVK', plotYlog = True)
@@ -436,12 +499,12 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 
 
 # plot log10 tdelay
-plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BNS', 'BHNS', 'BBH'])
+# plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BNS', 'BHNS', 'BBH'])
 
 
 ####### plot spins 
 # plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
-plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
+# plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
 
 

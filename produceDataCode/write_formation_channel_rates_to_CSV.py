@@ -19,6 +19,7 @@ from astropy import constants as const
 
 def initalize_formationChannels(DCOname):
 
+
     stringgg =  'formation_channels'
     writePath = '/Users/floorbroekgaarden/Projects/GitHub/DCO_FormationChannels/dataFiles/data_Fig_1/Formation_yields_'  + stringgg + '_'  + DCOname + 'fast.csv' 
 
@@ -91,6 +92,12 @@ def writeToRatesFile_FormationChannels(BPSmodelName='Z', DCOtype='BHNS'):
     #     OPTIMISTIC=True
     #     print('doing optimistic version of %s'%alphabetDirDict[bps_model])
 
+    immediateRLOFAfterCEE = fdata["commonEnvelopes"]["immediateRLOFAfterCEE"][...].squeeze()
+    immediateRLOFAfterCEEmask = (immediateRLOFAfterCEE==1)
+    CErandomSeed = fdata["commonEnvelopes"]["randomSeed"][...].squeeze()
+    
+    seeds_withImmediateRLOFAfterCEE = np.in1d(fdata['doubleCompactObjects']['seed'][...].squeeze(), CErandomSeed[immediateRLOFAfterCEEmask])
+    print('systems with withImmediateRLOFAfterCEE',np.sum(seeds_withImmediateRLOFAfterCEE), ' which is a fraction', np.sum(seeds_withImmediateRLOFAfterCEE)/len(seeds_withImmediateRLOFAfterCEE))
 
     seeds = fdata['doubleCompactObjects']['seed'][...].squeeze()
     channels = identify_formation_channels(seeds=seeds, file=fdata)
@@ -127,7 +134,7 @@ def writeToRatesFile_FormationChannels(BPSmodelName='Z', DCOtype='BHNS'):
     for nrC, Channel in enumerate(enumerate_list):          
 
     #           #Get the seeds that relate to sorted indices
-        mask_C  = (channels==Channel)
+        mask_C  = (channels==Channel)[~seeds_withImmediateRLOFAfterCEE]# everything except these seeds  
         
     
         intrinsicRates = np.zeros(len(MSSFRnameslist))
@@ -138,8 +145,8 @@ def writeToRatesFile_FormationChannels(BPSmodelName='Z', DCOtype='BHNS'):
 
 
             weightheader = 'w_' + mssfr
-            w_int = fdata[fparam_intrinsic][weightheader][...].squeeze()
-            w_det = fdata[fparam_detected][weightheader][...].squeeze()
+            w_int = fdata[fparam_intrinsic][weightheader][...].squeeze()[~seeds_withImmediateRLOFAfterCEE]# everything except these seeds
+            w_det = fdata[fparam_detected][weightheader][...].squeeze()[~seeds_withImmediateRLOFAfterCEE]# everything except these seeds
 
 
 
@@ -480,8 +487,8 @@ def initalize_formationChannelsRatio(DCOname):
 
 
 
-INITIALIZE_FormationChannelsRatio = True #False #True
-INITIALIZE_FormationChannels = False #True
+INITIALIZE_FormationChannelsRatio = False #True
+INITIALIZE_FormationChannels = True #True
 
 
 
@@ -505,8 +512,8 @@ if INITIALIZE_FormationChannels==True:
 
 
 
-runFormationChannels=False
-runFormationChannelsRatio=True# False #True
+runFormationChannels=True #False
+runFormationChannelsRatio= False #True
 
 
 
