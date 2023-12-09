@@ -56,7 +56,7 @@ if __name__ == '__main__':
         print('at DCOtype =', DCOtype)
         # BPSnameslist[1:-1]:
         # for BPSmodelName in  BPSnameslist[5:-1]:
-        for BPSmodelName in  ['D']:
+        for BPSmodelName in  ['A']:
             print()
             print()
             print(BPSmodelName)

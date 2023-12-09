@@ -1,0 +1,1 @@
+cluster scripts live at: /Users/floorbroekgaarden/Projects/GitHub/Double-Compact-Object-Mergers/demo_read_hdf5_file/cluster_scripts_DCO

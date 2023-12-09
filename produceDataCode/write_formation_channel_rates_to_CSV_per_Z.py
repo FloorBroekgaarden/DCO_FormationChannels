@@ -26,7 +26,8 @@ def createEmptyCSVplaceholder(DCOtype='BBH'):
 
     DCOname = DCOname_dict[DCOtype]
 
-    stringgg =  'formation_channels_per_Z'
+    stringgg =  'formation_channels_per_Z_hdf5weights'
+    # stringgg =  'formation_channels_per_Z'
     writePath = '/Users/floorbroekgaarden/Projects/GitHub/DCO_FormationChannels/dataFiles/data_Fig_1/'  + stringgg + '_'  + DCOname + '.csv' 
 
 
@@ -79,21 +80,27 @@ def createEmptyCSVplaceholder(DCOtype='BBH'):
 
 
 
-def writeFormationRatesAndChannelsToFile(DCOtype='BBH', BPSmodelName='Z'):
+def writeFormationRatesAndChannelsToFile(DCOtype='BBH', BPSmodelName='Z', runquick=True):
+    """
+    simple function that opens the data file for given DCO type and BPS model, and then calculates for each metallicity the total yield
+    for each formation channel, as well as the total yield. This uses the weights from the hdf5 file (stroopwafel weights), as well as 
+    the calculated formation channels from the DoubleCompactObjects file (though you can self-consistently calculate the formation channels
+    by uncommenting the channels = identify_formation_channels() instead)
+    It returns a csv file with the saved calculated yields per formation channel and metallicity. 
 
+
+
+    """
 
     DCOname = DCOname_dict[DCOtype]
 
+
     # path for files 
-    path_dir = '/Volumes/Andromeda2/DATA/AllDCO_bugfix/'
-    path_ = path_dir
-    path_ = path_ + alphabetDirDict[BPSmodelName] +'/'
+
+    path_ = '/Volumes/SimonsFoundation/DataDCO/'+ alphabetDirDict[BPSmodelName] +'/'
     path  = path_ + 'COMPASCompactOutput_'+ DCOtype +'_' + BPSmodelName + '.h5'
-
-    stringgg =  'formation_channels_per_Z'
+    stringgg =  'formation_channels_per_Z_hdf5weights'
     writePath = '/Users/floorbroekgaarden/Projects/GitHub/DCO_FormationChannels/dataFiles/data_Fig_1/'  + stringgg + '_'  + DCOname + '.csv' 
-
-
 
 
     # read in data 
@@ -102,7 +109,8 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', BPSmodelName='Z'):
 
 
     seeds = fdata['doubleCompactObjects']['seed'][...].squeeze()
-    channels = identify_formation_channels(seeds=seeds, file=fdata)
+    channels = fdata['doubleCompactObjects']["formaton channel"][...].squeeze()  # this is faster, but below will always work, even if fc are not ready yet 
+    # channels = identify_formation_channels(seeds=seeds, file=fdata) # update hdf5 weights 
     metallicities = fdata['doubleCompactObjects']['Metallicity1'][...].squeeze()
     weights = fdata['doubleCompactObjects']['weight'][...].squeeze()
 
@@ -147,38 +155,25 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', BPSmodelName='Z'):
 
     # path to datafile 
     # path = pathCOMPASOutput+alphabetDirDict[bps_model] + '/' + 'COMPASCompactOutput_'+DCOtype +'_'+bps_model+'.h5'
-    path = path_ + '/' + 'COMPASOutput.h5'
+    
 
 
 
-    print('doing difficult Data calculation')
-    #But I want only within Hubble time 
-    Data            = CC.COMPASData(path=path, lazyData=True, Mlower=5., \
-                     Mupper=150, binaryFraction=1)
-    Data.setCOMPASDCOmask(types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC)
-    Data.setCOMPASData()
-    metallicityGrid = Data.metallicityGrid
-    totalMassEvolvedPerZ = Data.totalMassEvolvedPerZ
-    meanMassEvolved = np.mean(totalMassEvolvedPerZ)
-    del Data
-    del totalMassEvolvedPerZ  
 
+    if runquick==True: 
+        print('running quick Data calculation')
+        meanMassEvolved = 77708655 # hack to save time, real calculation can be done by using the elif option below 
+    
+        for nrC, Channel in enumerate(enumerate_list):  
 
+            print('at channel ', Channel)      
 
-    for nrC, Channel in enumerate(enumerate_list):  
+            formationRate = np.zeros(len(Zlist))  
 
-        print('at channel ', Channel)      
+            mask_C  = (channels==Channel)
 
-        formationRate = np.zeros(len(Zlist))  
-
-        mask_C  = (channels==Channel)
-
-        ind_inMetallicityGrid = 0
-        for nrZ, Z in enumerate(Zlist):
-
-
-            if Z in metallicityGrid:
-
+            ind_inMetallicityGrid = 0
+            for nrZ, Z in enumerate(Zlist):
 
                 maskZ = (metallicities == Z)
                 mask_systems = (mask_C==1) & (maskZ==1)
@@ -191,14 +186,66 @@ def writeFormationRatesAndChannelsToFile(DCOtype='BBH', BPSmodelName='Z'):
                     formationRate[nrZ]         = (np.sum(weights[mask_systems])) / (meanMassEvolved)
 
                 ind_inMetallicityGrid +=1
-            # no DCO systems at this metallicty
-            else:
-                formationRate[nrZ]         = 0
 
-        df = pd.read_csv(writePath, index_col=0)
-        str_ = BPSmodelName + ' ' + headerDict_Z[nrC]+ '  [Msun^{-1}]'
-        df[str_] = formationRate
-        df.to_csv(writePath)
+
+            df = pd.read_csv(writePath, index_col=0)
+            str_ = BPSmodelName + ' ' + headerDict_Z[nrC]+ '  [Msun^{-1}]'
+            df[str_] = formationRate
+            df.to_csv(writePath)
+
+
+
+    else:
+        path = path_ + '/' + 'COMPASOutput.h5'
+        print('doing difficult Data calculation')
+        #But I want only within Hubble time 
+        Data            = CC.COMPASData(path=path, lazyData=True, Mlower=5., \
+                         Mupper=150, binaryFraction=1)
+        Data.setCOMPASDCOmask(types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC)
+        Data.setCOMPASData()
+        metallicityGrid = Data.metallicityGrid
+        
+        totalMassEvolvedPerZ = Data.totalMassEvolvedPerZ
+        print('totalMassEvolvedPerZ', totalMassEvolvedPerZ)
+        meanMassEvolved = np.mean(totalMassEvolvedPerZ)
+        print('meanMassEvolved', meanMassEvolved)
+        del Data
+        del totalMassEvolvedPerZ 
+
+        for nrC, Channel in enumerate(enumerate_list):  
+
+            print('at channel ', Channel)      
+
+            formationRate = np.zeros(len(Zlist))  
+
+            mask_C  = (channels==Channel)
+
+            ind_inMetallicityGrid = 0
+            for nrZ, Z in enumerate(Zlist):
+
+
+                if Z in metallicityGrid:
+
+
+                    maskZ = (metallicities == Z)
+                    mask_systems = (mask_C==1) & (maskZ==1)
+
+                    # -1 channel is the total rate, so we skip the channel mask
+                    if nrC==enumerate_list[-1]:
+                        formationRate[nrZ]         = np.sum(weights[maskZ])/ (meanMassEvolved) 
+                    # channel specific rate
+                    else:
+                        formationRate[nrZ]         = (np.sum(weights[mask_systems])) / (meanMassEvolved)
+
+                    ind_inMetallicityGrid +=1
+                # no DCO systems at this metallicty
+                else:
+                    formationRate[nrZ]         = 0
+
+            df = pd.read_csv(writePath, index_col=0)
+            str_ = BPSmodelName + ' ' + headerDict_Z[nrC]+ '  [Msun^{-1}]'
+            df[str_] = formationRate
+            df.to_csv(writePath)
 
 
     print('finished')
@@ -228,8 +275,6 @@ if INITIALIZE_FormationChannels_per_Z==True:
 
 
 
-
-
 runFormationChannels_per_Z=True
 
 
@@ -239,185 +284,13 @@ if runFormationChannels_per_Z==True:
         print(BPS)
         for DCOtype in [ 'BNS', 'BHNS', 'BBH']: #'BHNS',, 'BBH'
             print('at DCOtype =', DCOtype)
-            writeFormationRatesAndChannelsToFile(BPSmodelName=BPS, DCOtype=DCOtype)
+            writeFormationRatesAndChannelsToFile(BPSmodelName=BPS, DCOtype=DCOtype, runquick=True)
             print('done with ', BPS)
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-    # for nrZ, Z in enumerate(listt):
-    #     # this if and else statement is a little hack. Data.metallicityGrid might not contains some metallicities since
-    #     # it is based on the systems in the hdf5 file, but since the big Data files only contain the DCOs, it can be that a certain metallciity point
-    #     # has 0 DCOs and thats what the data.metallicityGrid is based on            
-    #     if Z in Data.metallicityGrid:
-    #         maskZ = (metallicities == Z)
-    #         formationRateTotal[nrZ] = np.sum(Data.weight[maskZ]) # //floor weights
-    #         # print('total 1 =',formationRateTotal[nrZ])
-    #         # mask different channels
-    #         InClassic       = np.in1d(seeds, seedsClassic)
-    #         InOnlyStableMT  = np.in1d(seeds, seedsOnlyStableMT)
-    #         InSingleCE      = np.in1d(seeds, seedsSingleCE)
-    #         InDoubleCE      = np.in1d(seeds, seedsDoubleCE)
-    #         InOther         = np.in1d(seeds, seedsOther)
-    #         # print('3')
-    #         maskClassic         = (metallicities == Z) & (InClassic==1)
-    #         maskOnlyStableMT    = (metallicities == Z) & (InOnlyStableMT==1)
-    #         maskSingleCE        = (metallicities == Z) & (InSingleCE==1)
-    #         maskDoubleCE        = (metallicities == Z) & (InDoubleCE==1)
-    #         maskOther           = (metallicities == Z) & (InOther==1)
-    #         # print('4')
-    #         formationRateClassic[nrZ]         = np.sum(weights[maskClassic])
-    #         formationRateOnlyStableMT[nrZ]    = np.sum(weights[maskOnlyStableMT])
-    #         formationRateSingleCE[nrZ]        = np.sum(weights[maskSingleCE]) 
-    #         formationRateDoubleCE[nrZ]        = np.sum(weights[maskDoubleCE])
-    #         formationRateOther[nrZ]           = np.sum(weights[maskOther])
-    #     else:
-    #         formationRateTotal[nrZ]           = 0
-    #         formationRateClassic[nrZ]         = 0
-    #         formationRateOnlyStableMT[nrZ]    = 0
-    #         formationRateSingleCE[nrZ]        = 0
-    #         formationRateDoubleCE[nrZ]        = 0
-    #         formationRateOther[nrZ]           = 0     
-
-
-        
-
-    #     seedsPercentageClassic, seedsPercentageOnlyStableMT = returnSeedsPercentageClassicAndOnlyStableMT(pathCOMPASOutput=path,\
-    #                                     types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC, \
-    #                                     binaryFraction=1)
-    #     seedsClassic, percentageClassic = seedsPercentageClassic
-    #     seedsOnlyStableMT, percentageOnlyStableMT = seedsPercentageOnlyStableMT
-
-
-
-    #     seedsDoubleCE, percentageDoubleCE = returnSeedsPercentageDoubleCoreCEE(pathCOMPASOutput=path,\
-    #                                     types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC, \
-    #                                     binaryFraction=1)
-
-
-    #     seedsSingleCE, percentageSingleCE = returnSeedsPercentageSingleCoreCEE(pathCOMPASOutput=path,\
-    #                                     types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC, \
-    #                                     binaryFraction=1)
-
-
-
-    #     seedschannels = [seedsClassic, seedsOnlyStableMT, seedsSingleCE, seedsDoubleCE]
-
-
-    #     seedsOther, percentageOther = returnSeedsPercentageOther(pathCOMPASOutput=path,\
-    #                                     types=DCOtype,  withinHubbleTime=True, optimistic=OPTIMISTIC, \
-    #                                     binaryFraction=1, channelsSeedsList=seedschannels)
-
-
-    #     seedschannels = [seedsClassic, seedsOnlyStableMT, seedsSingleCE, seedsDoubleCE, seedsOther]
-
-
-
-
-    #     dictChannelsBHNS = { 'classic':seedsClassic, \
-    #                         'immediate CE':seedsSingleCE,\
-    #                              'stable B no CEE':seedsOnlyStableMT, \
-    #                          r'double-core CE':seedsDoubleCE,  \
-    #                             'other':seedsOther\
-    #                            }
-
-
-
-
-    #     listt=[0.0001, 0.00011, 0.00012, 0.00014, 0.00016, 0.00017,\
-    #            0.00019, 0.00022, 0.00024, 0.00027, 0.0003, 0.00034, \
-    #            0.00037, 0.00042, 0.00047, 0.00052, 0.00058, 0.00065,\
-    #            0.00073, 0.00081, 0.0009, 0.00101, 0.00113, 0.00126,\
-    #            0.0014, 0.00157, 0.00175, 0.00195, 0.00218, 0.00243, \
-    #            0.00272, 0.00303, 0.00339, 0.00378, 0.00422, 0.00471, \
-    #            0.00526, 0.00587, 0.00655, 0.00732, 0.00817, 0.00912, \
-    #            0.01018, 0.01137, 0.01269, 0.01416, 0.01581, 0.01765, 0.01971, 0.022, 0.0244, 0.02705, 0.03]
-
-                 
-    #     formationRateTotal           = np.zeros(len(listt))  
-    #     formationRateClassic         = np.zeros(len(listt)) 
-    #     formationRateOnlyStableMT    = np.zeros(len(listt)) 
-    #     formationRateSingleCE        = np.zeros(len(listt)) 
-    #     formationRateDoubleCE        = np.zeros(len(listt)) 
-    #     formationRateOther           = np.zeros(len(listt)) 
-
-    #     # print('#Z =',len(Data.metallicityGrid))
-    #     for nrZ, Z in enumerate(listt):
-    #         # this if and else statement is a little hack. Data.metallicityGrid might not contains some metallicities since
-    #         # it is based on the systems in the hdf5 file, but since the big Data files only contain the DCOs, it can be that a certain metallciity point
-    #         # has 0 DCOs and thats what the data.metallicityGrid is based on            
-    #         if Z in Data.metallicityGrid:
-    #             maskZ = (metallicities == Z)
-    #             formationRateTotal[nrZ] = np.sum(Data.weight[maskZ]) # //floor weights
-    #             # print('total 1 =',formationRateTotal[nrZ])
-    #             # mask different channels
-    #             InClassic       = np.in1d(seeds, seedsClassic)
-    #             InOnlyStableMT  = np.in1d(seeds, seedsOnlyStableMT)
-    #             InSingleCE      = np.in1d(seeds, seedsSingleCE)
-    #             InDoubleCE      = np.in1d(seeds, seedsDoubleCE)
-    #             InOther         = np.in1d(seeds, seedsOther)
-    #             # print('3')
-    #             maskClassic         = (metallicities == Z) & (InClassic==1)
-    #             maskOnlyStableMT    = (metallicities == Z) & (InOnlyStableMT==1)
-    #             maskSingleCE        = (metallicities == Z) & (InSingleCE==1)
-    #             maskDoubleCE        = (metallicities == Z) & (InDoubleCE==1)
-    #             maskOther           = (metallicities == Z) & (InOther==1)
-    #             # print('4')
-    #             formationRateClassic[nrZ]         = np.sum(weights[maskClassic])
-    #             formationRateOnlyStableMT[nrZ]    = np.sum(weights[maskOnlyStableMT])
-    #             formationRateSingleCE[nrZ]        = np.sum(weights[maskSingleCE]) 
-    #             formationRateDoubleCE[nrZ]        = np.sum(weights[maskDoubleCE])
-    #             formationRateOther[nrZ]           = np.sum(weights[maskOther])
-    #         else:
-    #             formationRateTotal[nrZ]           = 0
-    #             formationRateClassic[nrZ]         = 0
-    #             formationRateOnlyStableMT[nrZ]    = 0
-    #             formationRateSingleCE[nrZ]        = 0
-    #             formationRateDoubleCE[nrZ]        = 0
-    #             formationRateOther[nrZ]           = 0           
-            
-    #     # mask the Z that are in the grid           
-    #     maskZgridinZlist = np.in1d(listt, Data.metallicityGrid)
-    #  #    print('----')
-    #  #    print(formationRateTotal[maskZgridinZlist])
-    #  #    print(formationRateTotal)
-    #     # # print(maskZgridinZlist)
-    #     # # print(listt)
-    #     # # print(Data.metallicityGrid)
-    #     # # print('divide=',np.divide(formationRateTotal[maskZgridinZlist], Data.totalMassEvolvedPerZ) + 0)
-    #     # # print()
-    #  #    print('Data.totalMassEvolvedPerZ', Data.totalMassEvolvedPerZ)
-    #  #    print()
-    #  #    print('----')
-    #     formationRateTotal[maskZgridinZlist] = np.divide(formationRateTotal[maskZgridinZlist], Data.totalMassEvolvedPerZ) + 0 #lowerY        
-    #     formationRateClassic[maskZgridinZlist] = np.divide(formationRateClassic[maskZgridinZlist], Data.totalMassEvolvedPerZ)
-    #     formationRateOnlyStableMT[maskZgridinZlist] = np.divide(formationRateOnlyStableMT[maskZgridinZlist], Data.totalMassEvolvedPerZ)
-    #     formationRateSingleCE[maskZgridinZlist] = np.divide(formationRateSingleCE[maskZgridinZlist], Data.totalMassEvolvedPerZ)
-    #     formationRateDoubleCE[maskZgridinZlist] = np.divide(formationRateDoubleCE[maskZgridinZlist], Data.totalMassEvolvedPerZ)
-    #     formationRateOther[maskZgridinZlist] = np.divide(formationRateOther[maskZgridinZlist], Data.totalMassEvolvedPerZ)
-    #     # print('ind =', formationRateTotal[maskZgridinZlist])
-
-    #     df = pd.read_csv('/Users/floorbroekgaarden/Projects/GitHub/Double-Compact-Object-Mergers/dataFiles/summary_data_Fig_1/formationRatesTotalAndPerChannel_'+DCOname+ '_' +  '.csv', index_col=0)
-    #     # namez0 = bps_model +' total  [Msun^{-1}]'
-
-    #     str_ = bps_model + ' ' + c_ + '  [Msun^{-1}]'
-
-            
-    #     df[str_] = formationRate
-
-
-    #     df.to_csv('/Users/floorbroekgaarden/Projects/GitHub/Double-Compact-Object-Mergers/dataFiles/summary_data_Fig_1/formationRatesTotalAndPerChannel_'+DCOname+ '_' +  '.csv')
 
 
 
