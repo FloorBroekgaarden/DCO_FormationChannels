@@ -28,15 +28,20 @@ channelList = ['classic', 'stable B no CEE', 'vii',  'immediate CE',  r'double-c
 
 def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
                           spin_threshold='None', bw=0.01, xlim=[0,1], ylim=[0,1],\
-                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde', Metallicity_lower=False, Metallicity_upper=False):#, mssfr='112'):
+                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde', Metallicity_lower=False, Metallicity_upper=False, \
+                          pathData='/Volumes/SimonsFoundation/DataDCO/', channelList=['classic']):#, mssfr='112'):
     
     fs_l = 28 # label fontsize
     fs_major=34
             
 
 
+
+
+
+
     # path for files 
-    path_ = '/Volumes/Andromeda2/DATA/AllDCO_bugfix/' + alphabetDirDict[BPSmodelName] +'/'
+    path_ = pathData + alphabetDirDict[BPSmodelName] +'/'
     path  = path_ + 'COMPASCompactOutput_'+ DCOtype +'_' + BPSmodelName + '.h5'
     
     fdata = h5.File(path, 'r')
@@ -191,13 +196,12 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         
     
       
-    
-    if plotYlog==True:       
-        axe.set_yscale('log')
+
         
     adjustedChannelList = ['classic', 'stable B no CEE', 'vii', 'immediate CE',  r'double-core CE', 'other']
+    
     # adjustedChannelList = ['classic', 'stable B no CEE', 'immediate CE',  'other']#, 'stable B no CEE', 'immediate CE']#
-    for nrC, Channel in enumerate(adjustedChannelList): 
+    for nrC, Channel in enumerate(channelList): 
         
 
         yy_max = np.zeros_like(xx)
@@ -214,14 +218,19 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         c_FC = channelColorDict[Channel]
         colors_lighter_FC =  channelColorDict_lighter[Channel]
 
+        colors_metallicity_bins =  sns.color_palette("husl", 7)
 
-        mask_MRR = (channels==ind_wanted) & (Metallicity>=Metallicity_lower) & (Metallicity<=Metallicity_upper)
-    
-        if np.sum(mask_MRR)>10:
-    
-            for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:]):
-            # for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:2]):    
+        metallicity_alphas_list = np.linspace(0.3,1, 6) 
+        # metallicity_linestyles_list = ['solid', 'long dash with offset', 'dashed',  'dashdot', 'loosely dashed' ':']
+        metallicity_linestyles_list = [ 'dotted', 'dotted','dashed', 'dashed', 'solid', 'solid']        
 
+
+        for ind_Zbin, lowerZbin in enumerate(Metallicity_lower):
+            upperZbin = Metallicity_upper[ind_Zbin]    
+            # print('running for Zbin: [',lowerZbin, ',', upperZbin, ']' )        
+            mask_MRR = (channels==ind_wanted) & (Metallicity>=lowerZbin) & (Metallicity<=upperZbin)
+        
+            if np.sum(mask_MRR)>10:
                 ls_ = '-'
                 ### read in Metallicity weights: ###
 
@@ -230,80 +239,44 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                 w = weights_
                 bandwidth=1
 
-                if (mode=='MRR_PDF') | (mode=='MRR_fraction') |  (mode=='notMRR_fraction') : 
-                    # we want at least 10 datapoint for KDE
-                    # if len(w[mask_MRR])>10:
-                
+                # we want at least 10 datapoint for KDE
+                # if len(w[mask_MRR])>10:
+            
+                # print('running kde ')
+                # plot for formation channel 
 
-                    # # plot total rate once 
-                    # if nrC ==0:
-                    #     yy_MRR = estimator.fit(param_x, weights=w).evaluate(xx) 
-                    #     # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
-                    #     rel_weight_MRR    = 1.
-                    #     yy_MRR *= rel_weight_MRR
-                    #     # rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
-                    #     yy_min_tot = np.minimum(yy_min, yy_MRR)
-                    #     yy_max_tot = np.maximum(yy_max, yy_MRR)
+                # edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
+                estimator = FFTKDE(kernel='biweight', bw=bw)    
+                # print('bandwidth=', bw)
 
-                    #     # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                    #     axe.plot(xx, yy_MRR,    color='k', lw=3, zorder=2, alpha=1, ls=ls_)
+                yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
+                # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
+                rel_weight_MRR    = np.sum(w[mask_MRR]) # / (np.sum(w))
+                yy_MRR *= rel_weight_MRR
+                yy_min = np.minimum(yy_min, yy_MRR)
+                yy_max = np.maximum(yy_max, yy_MRR)
+                # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                axe.plot(xx, yy_MRR, color=colors_metallicity_bins[ind_Zbin], lw=4, zorder=16, alpha=1 ) #, ls=metallicity_linestyles_list[ind_Zbin])
 
-         
-                    if histtype=='kde':
-                        # print('running kde ')
-                        # plot for formation channel 
 
-                        # edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
-                        estimator = FFTKDE(kernel='biweight', bw=bw)    
-                        print('bandwidth=', bw)
-
-                        yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
-                        # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
-                        rel_weight_MRR    = np.sum(w[mask_MRR]) # / (np.sum(w))
-                        yy_MRR *= rel_weight_MRR
-                        yy_min = np.minimum(yy_min, yy_MRR)
-                        yy_max = np.maximum(yy_max, yy_MRR)
-                        # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                        axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-
-                    # elif histtype=='hist':
-                    #     # import astropy.stats
-                    #     edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
-
-                    #     hist, bin_edge = np.histogram(param_x[mask_MRR], weights = w[mask_MRR], bins=edges)
-                    #     center_bins = (bin_edge[:-1] + bin_edge[1:])/2.
-                    #     binwidth = np.diff(bin_edge)
-                    #     rel_weight_MRR    = (np.sum(w[mask_MRR])  / (np.sum(w))) / binwidth
-                    #     yy_MRR = rel_weight_MRR*hist
-                    #     # yy_min = np.minimum(yy_min[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
-                    #     # yy_max = np.maximum(yy_max[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
-                    #     axe.plot(center_bins, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-
-                         
                         
-                    
-                else:
-                    print('%s data points for KDE, this is below the threshold 10, not drawing KDE'%len(w[mask_MRR]))
+            else:
+                print('%s data points for KDE, this is below the threshold 10, not drawing KDE'%len(mask_MRR))
 
 
-            axe = layoutAxes(axe, nameX=nameX, nameY=nameY, setMinor=True, labelpad=0, fontsize=fs_l, labelSizeMajor=fs_major) 
+    axe = layoutAxes(axe, nameX=nameX, nameY=nameY, setMinor=True, labelpad=0, fontsize=fs_l, labelSizeMajor=fs_major) 
 
-            # if len(w[mask_MRR]):
-            #     #    plot total 
-            # if histtype=='kde':
-            # axe.fill_between(xx, y1=yy_min, y2=yy_max,   color=colors_lighter_FC, alpha=1,  zorder=1)
-            # axe.fill_between(xx, y1=yy_min_tot, y2=yy_max_tot,   color='gray', alpha=1,  zorder=1)
-            # elif histtype=='hist':
-                    # axe.fill_between(xx, y1=yy_min_hist,  y2=yy_max_hist,   color=colors_lighter_FC, alpha=1,  zorder=1)
-                
+
     axe.set_xlim(xlim[0], xlim[1])
     axe.set_ylim(ylim[0], ylim[1])
     axe.grid(True)
     
     
+    if plotYlog==True:       
+        axe.set_yscale('log')
 
 
-    
+
     return axe 
 
 
@@ -365,7 +338,7 @@ def set_limits(xparam, DCOtype):
     return xlim, ylim,  bw, ylim_threshold
 
 
-def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', Metallicity_lower=0.0, Metallicity_upper=0.03):
+def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', Metallicity_lower=0.0, Metallicity_upper=0.03, channelList=['classic']):
 
 
     for DCOtype in DCOtypeList: 
@@ -386,10 +359,12 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
                 ax.text(0.02, 0.97, s=s_text , rotation = 0, fontsize=24, color = 'k', va='top', ha = 'left',transform=ax.transAxes)#, weight = 'bold')
 
             xlim, ylim,  bw, ylim_threshold = set_limits(xparam, DCOtype) 
-            
+
+
+
             ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_PDF',\
                                           spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype, \
-                                          Metallicity_lower=Metallicity_lower, Metallicity_upper=Metallicity_upper)
+                                          Metallicity_lower=Metallicity_lower, Metallicity_upper=Metallicity_upper, channelList=channelList)
             # xx = np.linspace(1000,20000,100)
             # yy = np.linspace(1000,20000,100)
             # lw=12
@@ -401,8 +376,8 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
             plt.tight_layout()  
             # plt.subplots_adjust(wspace=0.2, hspace=0.1)
 
-            plt.savefig('./singlemodel_perZ/'+ xparam+'/super_FC_split_panel_%s_%s_%s.pdf'%(DCOtype, BPSmodel, Metallicity_upper), transparent=False, bbox_inches="tight",  format='pdf')
-            plt.savefig('./singlemodel_perZ/'+ xparam+'/super_FC_split_panel_%s_%s_%s.png'%(DCOtype, BPSmodel, Metallicity_upper), transparent=False, bbox_inches="tight", dpi=600, format='png')
+            plt.savefig('./singlemodel_perZ/'+ xparam+'/super_FC_split_panel_%s_%s_%s.pdf'%(DCOtype, BPSmodel, channelList[0]), transparent=False, bbox_inches="tight",  format='pdf')
+            plt.savefig('./singlemodel_perZ/'+ xparam+'/super_FC_split_panel_%s_%s_%s.png'%(DCOtype, BPSmodel, channelList[0]), transparent=False, bbox_inches="tight", dpi=600, format='png')
 
             print('done')
             # plt.show()  
@@ -424,9 +399,21 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 # plot_param_fc(xparam = 'spin_1_LVK', plotYlog = True, DCOtypeList=['BHNS', 'BBH'])
 # plot_param_fc(xparam = 'spin_2_LVK', plotYlog = True, DCOtypeList=['BBH'])
 
-Metallicity_lower=0
-Metallicity_upper=0.0014
-plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BBH'], Metallicity_lower=Metallicity_lower, Metallicity_upper=Metallicity_upper)
+# Metallicity_lower=0
+# Metallicity_upper=0.0014
+
+
+nZbins = 6
+Metallicity_lower_bins, Metallicity_upper_bins = np.zeros(nZbins), np.zeros(nZbins)
+metallicity_list = np.concatenate((np.asarray(metallicities_list),np.asarray([0.03])))
+
+channelList=['classic']
+for n_rough_Z_bins in range(6): 
+    lowerZ, upperZ = 0 + 9*n_rough_Z_bins, 8 + 9*n_rough_Z_bins
+    Metallicity_lower_bins[n_rough_Z_bins], Metallicity_upper_bins[n_rough_Z_bins]  = metallicity_list[lowerZ], metallicity_list[upperZ]
+
+plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BBH'], Metallicity_lower=Metallicity_lower_bins, Metallicity_upper=Metallicity_upper_bins,\
+    channelList=channelList)
 
 # plot_param_fc(xparam = 'log10_t_delay', plotYlog = True, DCOtypeList=['BNS', 'BHNS', 'BBH'], Metallicity_lower=Metallicity_lower, Metallicity_upper=Metallicity_upper)
 

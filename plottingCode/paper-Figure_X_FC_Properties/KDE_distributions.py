@@ -28,7 +28,8 @@ channelList = ['classic', 'stable B no CEE', 'vii',  'immediate CE',  r'double-c
 
 def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
                           spin_threshold='None', bw=0.01, xlim=[0,1], ylim=[0,1],\
-                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde'):#, mssfr='112'):
+                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde',\
+                          pathData='/Volumes/SimonsFoundation/DataDCO/', redshift=None, weights_type='merger'):#, mssfr='112'):
     
     fs_l = 28 # label fontsize
     fs_major=34
@@ -36,7 +37,7 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
 
     # path for files 
-    path_ = '/Volumes/Andromeda2/DATA/AllDCO_bugfix/' + alphabetDirDict[BPSmodelName] +'/'
+    path_ = pathData + alphabetDirDict[BPSmodelName] +'/'
     path  = path_ + 'COMPASCompactOutput_'+ DCOtype +'_' + BPSmodelName + '.h5'
     
     fdata = h5.File(path, 'r')
@@ -50,22 +51,23 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
     seedsSN   = fdata['supernovae']['randomSeed'][...].squeeze()    # get the seeds in the SN file 
     indices   = np.sort(np.unique(seedsSN[1::2], return_index=True)[1])
     maskSNdco = np.in1d(seedsSN,  seedsDCO) # mask in the SNe files the SNe that correspond to our DCO
-    whichSN   = fdata['supernovae']['whichStar'][...].squeeze()[maskSNdco]  # this is 1 if the initially primary star goes SN and 2 if the secondary goes supernova     
-    whichSN2  = whichSN[1::2][indices]
+    # whichSN   = fdata['supernovae']['whichStar'][...].squeeze()[maskSNdco]  # this is 1 if the initially primary star goes SN and 2 if the secondary goes supernova     
+    # whichSN2  = whichSN[1::2][indices] # add for spins and above
 
     # either SN2 = primary (1) and M1 is > M2, or SN2 = secondary & M1 < M2 
     # this takes into account (first term) rejuvenation 
-    mask_MRR = ((whichSN2==1) & (massCO_ZAMSM1>massCO_ZAMSM2) ) | ((whichSN2==2) & (massCO_ZAMSM1<massCO_ZAMSM2)) 
+    # mask_MRR = ((whichSN2==1) & (massCO_ZAMSM1>massCO_ZAMSM2) ) | ((whichSN2==2) & (massCO_ZAMSM1<massCO_ZAMSM2))  # add for bavera spins
 
     # obtain formation channels 
     seeds = fdata['doubleCompactObjects']['seed'][...].squeeze()
-    channels = identify_formation_channels(seeds=seeds, file=fdata)
+    channels = fdata['doubleCompactObjects']['formaton channel'][...].squeeze()
+    #old: channels = identify_formation_channels(seeds=seeds, file=fdata)
     
     
     del massCO_ZAMSM1
     del massCO_ZAMSM2
-    del whichSN2
-    del whichSN
+    # del whichSN2 # add for spins
+    # del whichSN # add for spins 
     del maskSNdco
     del indices
     del seedsSN
@@ -98,6 +100,15 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
         nameX = r'$\mathcal{M}_{\rm{c}} \ [M_{\odot}]$'
         nameY = r'\textbf{PDF}'
         xx = np.linspace(1,100,1000)
+        print(param_x)
+        print(np.shape(param_x))
+
+
+    elif xparam=='mass_tot':
+        param_x = massCO_LVKM1 + massCO_LVKM2
+        nameX = r'$\mathcal{M}_{\rm{tot}} \ [M_{\odot}]$'
+        nameY = r'\textbf{PDF}'
+        xx = np.linspace(1,5,1000)
         print(param_x)
         print(np.shape(param_x))
         
@@ -198,8 +209,8 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
     
       
     
-    if plotYlog==True:       
-        axe.set_yscale('log')
+    # if plotYlog==True:       
+    #     axe.set_yscale('log')
         
     adjustedChannelList = ['classic', 'stable B no CEE', 'vii', 'immediate CE',  r'double-core CE', 'other']
     # adjustedChannelList = ['classic', 'stable B no CEE', 'immediate CE',  'other']#, 'stable B no CEE', 'immediate CE']#
@@ -222,11 +233,15 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
 
         mask_MRR = (channels==ind_wanted)
-    
-        if np.sum(mask_MRR)>10:
+
+        # too few data points             
+        if np.sum(mask_MRR)<=10:
+            print('%s data points for KDE, this is below the threshold 10, not drawing KDE'%len(w[mask_MRR]))
+        else:
     
             for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:]):
-            # for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:2]):    
+            # for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:2]):  # temp 
+                # print('mssfr = ', mssfr)
 
                 ls_ = '-'
                 Highlight = False
@@ -241,85 +256,95 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
                     Highlight = True
 
 
-
-
                 ### read in MSSFR weights: ###
-    #             fparam_key = 'weights_detected'
-                fparam_key = 'weights_intrinsic'
-                weightheader = 'w_' + mssfr
-                weights_ = fdata[fparam_key][weightheader][...].squeeze()
-                w = weights_
-                bandwidth=1
-
-
-                if (mode=='MRR_PDF') | (mode=='MRR_fraction') |  (mode=='notMRR_fraction') : 
-                    # we want at least 10 datapoint for KDE
-                    # if len(w[mask_MRR])>10:
-                
-
-                    # # plot total rate once 
-                    # if nrC ==0:
-                    #     yy_MRR = estimator.fit(param_x, weights=w).evaluate(xx) 
-                    #     # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
-                    #     rel_weight_MRR    = 1.
-                    #     yy_MRR *= rel_weight_MRR
-                    #     # rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
-                    #     yy_min_tot = np.minimum(yy_min, yy_MRR)
-                    #     yy_max_tot = np.maximum(yy_max, yy_MRR)
-
-                    #     # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                    #     axe.plot(xx, yy_MRR,    color='k', lw=3, zorder=2, alpha=1, ls=ls_)
-
-                    
-                    if histtype=='kde':
-                        # print('running kde ')
-                        # plot for formation channel 
-
-                        # edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
-                        estimator = FFTKDE(kernel='biweight', bw=bw) #bw=bw)    
-
-                        yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
-                        rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
-                        yy_MRR *= rel_weight_MRR
-
-                        if (mode=='MRR_fraction'):
-                            yy_MRR_all_channels = estimator.fit(param_x, weights=w).evaluate(xx) 
-                            
-                            mask_too_small_values = (yy_MRR_all_channels < ylim_threshold)
-                            yy_MRR[mask_too_small_values] = np.zeros(int(np.sum(mask_too_small_values)))
-
-                            axe.plot(xx, yy_MRR/(yy_MRR_all_channels),    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-
-                        elif (mode=='MRR_PDF'):
-                            axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-                        else:
-                            print('error, plotting mode not given')
-
-                        yy_min = np.minimum(yy_min, yy_MRR)
-                        yy_max = np.maximum(yy_max, yy_MRR)
-
-                    elif histtype=='hist':
-                        # import astropy.stats
-                        edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
-
-                        hist, bin_edge = np.histogram(param_x[mask_MRR], weights = w[mask_MRR], bins=edges)
-                        center_bins = (bin_edge[:-1] + bin_edge[1:])/2.
-                        binwidth = np.diff(bin_edge)
-                        rel_weight_MRR    = (np.sum(w[mask_MRR])  / (np.sum(w))) / binwidth
-                        yy_MRR = rel_weight_MRR*hist
-                        # yy_min = np.minimum(yy_min[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
-                        # yy_max = np.maximum(yy_max[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
-                        axe.plot(center_bins, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
-
-                         
-                        
-                    
+                if redshift!=None:
+                    if weights_type=='merger':
+                        fparam_key = 'weights_intrinsicPerRedshift'
+                        weightheader = 'w_' + mssfr + '_z_' +  str(redshift)
+                        weights_ = fdata[fparam_key][weightheader][...].squeeze()
+                    elif weights_type=='formation':
+                        fparam_key = "weights_intrinsicFormationPerRedshift"
+                        weightheader = 'wform_' + mssfr + '_z_' +  str(redshift)
+                        weights_ = fdata[fparam_key][weightheader][...].squeeze()
                 else:
-                    print('%s data points for KDE, this is below the threshold 10, not drawing KDE'%len(w[mask_MRR]))
+                    fparam_key = 'weights_intrinsic'
+                    weightheader = 'w_' + mssfr
+                    weights_ = fdata[fparam_key][weightheader][...].squeeze()
+
+                w = weights_
+
+                # abritrary threshold to get rid of cases where the total weights is 0 or so small its negligible
+                if np.sum(w[mask_MRR])==0:
+                    print('sum of weights of interest is %s. We will not plot the distribution'%np.sum(w[mask_MRR]))
+
+                else:
+                    if (mode=='MRR_PDF') | (mode=='MRR_fraction') |  (mode=='notMRR_fraction') : 
+                        # we want at least 10 datapoint for KDE
+                        # if len(w[mask_MRR])>10:
+                    
+
+                        # # plot total rate once 
+                        # if nrC ==0:
+                        #     yy_MRR = estimator.fit(param_x, weights=w).evaluate(xx) 
+                        #     # yy_total = estimator.fit(param_x, weights=w).evaluate(xx) 
+                        #     rel_weight_MRR    = 1.
+                        #     yy_MRR *= rel_weight_MRR
+                        #     # rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
+                        #     yy_min_tot = np.minimum(yy_min, yy_MRR)
+                        #     yy_max_tot = np.maximum(yy_max, yy_MRR)
+
+                        #     # axe.plot(xx[mask_kde_inside], yy_MRR[mask_kde_inside],    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                        #     axe.plot(xx, yy_MRR,    color='k', lw=3, zorder=2, alpha=1, ls=ls_)
+
+                        
+                        if histtype=='kde':
+                            # print('running kde ')
+                            # plot for formation channel 
+
+                            # edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
+                            estimator = FFTKDE(kernel='biweight', bw=bw) #bw=bw)    
+
+
+                            yy_MRR = estimator.fit(param_x[mask_MRR], weights=w[mask_MRR]).evaluate(xx) 
+                            rel_weight_MRR    = np.sum(w[mask_MRR])  / (np.sum(w))
+                            yy_MRR *= rel_weight_MRR
+
+                            if (mode=='MRR_fraction'):
+                                yy_MRR_all_channels = estimator.fit(param_x, weights=w).evaluate(xx) 
+                                
+                                mask_too_small_values = (yy_MRR_all_channels < ylim_threshold)
+                                yy_MRR[mask_too_small_values] = np.zeros(int(np.sum(mask_too_small_values)))
+
+                                axe.plot(xx, yy_MRR/(yy_MRR_all_channels),    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+
+                            elif (mode=='MRR_PDF'):
+                                axe.plot(xx, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+                            else:
+                                print('error, plotting mode not given')
+
+                            yy_min = np.minimum(yy_min, yy_MRR)
+                            yy_max = np.maximum(yy_max, yy_MRR)
+
+                        elif histtype=='hist':
+                            # import astropy.stats
+                            edges = astropy.stats.bayesian_blocks(param_x[mask_MRR], fitness='events', p0=0.01)
+
+                            hist, bin_edge = np.histogram(param_x[mask_MRR], weights = w[mask_MRR], bins=edges)
+                            center_bins = (bin_edge[:-1] + bin_edge[1:])/2.
+                            binwidth = np.diff(bin_edge)
+                            rel_weight_MRR    = (np.sum(w[mask_MRR])  / (np.sum(w))) / binwidth
+                            yy_MRR = rel_weight_MRR*hist
+                            # yy_min = np.minimum(yy_min[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
+                            # yy_max = np.maximum(yy_max[:], np.concatenate(([yy_MRR[0]], yy_MRR)))
+                            axe.plot(center_bins, yy_MRR,    color=c_FC, lw=3, zorder=16, alpha=1, ls=ls_)
+
+                             
+                            
 
 
             axe = layoutAxes(axe, nameX=nameX, nameY=nameY, setMinor=True, labelpad=0, fontsize=fs_l, labelSizeMajor=fs_major) 
-
+            if plotYlog==True:       
+                axe.set_yscale('log')
             # if len(w[mask_MRR]):
             #     #    plot total 
             # if histtype=='kde':
@@ -343,6 +368,8 @@ def plot_FC_distribution(axe='None', xparam='chiEff', BPSmodelName='A', mode='pd
 
 
 def set_limits(xparam, DCOtype):
+
+
     if xparam=='mass_1_LVK':
         if DCOtype=='BBH':
             bw=0.7
@@ -356,6 +383,21 @@ def set_limits(xparam, DCOtype):
             bw=0.035
             ylim_threshold = 0.0004 
             xlim, ylim = [1, 3], [0.001, 8]
+
+    elif xparam=='mass_tot':
+        if DCOtype=='BBH':
+            bw=0.7
+            ylim_threshold = 0.0004  
+            xlim, ylim = [0, 48], [0.001, 0.15]     
+        elif DCOtype=='BHNS':
+            bw=0.40
+            ylim_threshold = 0.0004 
+            xlim, ylim = [0, 25], [0.001, .35]
+        elif DCOtype=='BNS':
+            bw=0.035
+            ylim_threshold = 0.0004 
+            xlim, ylim = [2, 5], [0.001, 8]
+
     elif xparam=='mass_2_LVK':
         if DCOtype=='BBH':
             bw=0.7
@@ -398,13 +440,13 @@ def set_limits(xparam, DCOtype):
     return xlim, ylim,  bw, ylim_threshold
 
 
-def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde'):
+def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', redshift=None, pathData='/Volumes/SimonsFoundation/DataDCO/', weights_type='merger'):
 
-
+    # for DCOtype in ['BHNS', 'BNS', 'BBH']: # temp 
     for DCOtype in DCOtypeList: 
 
         print('running for DCOtype = %s, for %s parameter '%(DCOtype, xparam))
-        for ind_BPS, BPSmodel in enumerate(BPSnameslist[0:]):
+        for ind_BPS, BPSmodel in enumerate(BPSnameslist[0:]): # temp 
         # for ind_BPS, BPSmodel in enumerate([BPSnameslist[0]]):
 
             fig, ax = plt.subplots(1,1, figsize=(14,9))#,\
@@ -421,9 +463,10 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
 
             xlim, ylim,  bw, ylim_threshold = set_limits(xparam, DCOtype) 
 
-            
             ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_PDF',\
-                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
+                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog,\
+                                           ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype,\
+                                           redshift=redshift, pathData='/Volumes/SimonsFoundation/DataDCO/', weights_type=weights_type)
             # xx = np.linspace(1000,20000,100)
             # yy = np.linspace(1000,20000,100)
             # lw=12
@@ -435,25 +478,31 @@ def plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 
             # plt.tight_layout()  
             # plt.subplots_adjust(wspace=0.2, hspace=0.1)
             #
-            plt.savefig('./singlemodel/'+ xparam+'/super_FC_split_panel_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
-            plt.savefig('./singlemodel/'+ xparam+'/super_FC_split_panel_%s_%s.png'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight", dpi=600, format='png')
+            if redshift==None:
+                str_z = '0'
+            else:
+                str_z = str(redshift)
+            plt.savefig('./singlemodel/'+ xparam+'/fcplot_%s_%s_z%s_w%s.pdf'%(DCOtype, BPSmodel, str_z, weights_type), transparent=False, bbox_inches="tight",  format='pdf')
+            plt.savefig('./singlemodel/'+ xparam+'/fcplot_%s_%s_z%s_w%s.png'%(DCOtype, BPSmodel, str_z, weights_type), transparent=False, bbox_inches="tight", dpi=600, format='png')
 
             print('done')
             # plt.show()  
-            # plt.close()
+            plt.close()
 
     return 
 
 
 
-def plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', ylim_threshold=0.):
+def plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', ylim_threshold=0.,\
+ redshift=None, pathData='/Volumes/SimonsFoundation/DataDCO/', weights_type='formation'):
 
 
-    for DCOtype in DCOtypeList: 
+    for DCOtype in DCOtypeList: # temp 
+    # for DCOtype in ['BHNS']: 
 
         print('running for DCOtype = %s, for %s parameter '%(DCOtype, xparam))
         for ind_BPS, BPSmodel in enumerate(BPSnameslist[0:]):
-        # for ind_BPS, BPSmodel in enumerate([BPSnameslist[0]]):
+        # for ind_BPS, BPSmodel in enumerate([BPSnameslist[0]]): # temp 
 
             fig, ax = plt.subplots(1,1, figsize=(14,6))#,\
             fs_major=34
@@ -471,22 +520,27 @@ def plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList =
             ylim = [0,1.1]
 
             ax = plot_FC_distribution(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_fraction',\
-                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
-
+                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog,\
+                                           ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype, redshift=redshift, pathData=pathData, weights_type=weights_type)
             #
-            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
-            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s.png'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight", dpi=600, format='png')
+            if redshift==None:
+                str_z = '0'
+            else:
+                str_z = str(redshift)
+            
+            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s_z%s_w%s.pdf'%(DCOtype, BPSmodel, str_z, weights_type), transparent=False, bbox_inches="tight",  format='pdf')
+            plt.savefig('./singlemodel/'+ xparam+'/fraction_fc_%s_%s_z%s_w%s.png'%(DCOtype, BPSmodel, str_z, weights_type), transparent=False, bbox_inches="tight", dpi=600, format='png')
 
             print('done')
             # plt.show()  
-            # plt.close()
+            plt.close()
 
     return 
 
 
 
 
-def plot_redshift_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde'):
+def plot_redshift_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS', 'BBH', 'BHNS'], histtype='kde', redshift=None, weights_type='merger'):
 
 
     for DCOtype in DCOtypeList: 
@@ -511,7 +565,8 @@ def plot_redshift_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS
 
             
             ax = plot_FC_rates(axe=ax, xparam=xparam, BPSmodelName=BPSmodel, mode='MRR_PDF',\
-                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype)
+                                          spin_threshold=0.05, bw=bw, xlim=xlim, ylim=ylim, \
+                                          plotYlog=plotYlog, ylim_threshold=ylim_threshold, DCOtype=DCOtype, histtype=histtype, weights_type=weights_type)
             # xx = np.linspace(1000,20000,100)
             # yy = np.linspace(1000,20000,100)
             # lw=12
@@ -523,7 +578,7 @@ def plot_redshift_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS
             # plt.tight_layout()  
             # plt.subplots_adjust(wspace=0.2, hspace=0.1)
             #
-            plt.savefig('./singlemodel/'+ xparam+'/fc_rates_%s_%s.pdf'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight",  format='pdf')
+            plt.savefig('./singlemodel/'+ xparam+'/fc_rates_%s_%s_%s.pdf'%(DCOtype, BPSmodel, weights_type), transparent=False, bbox_inches="tight",  format='pdf')
             # plt.savefig('./singlemodel/'+ xparam+'/fc_rates_%s_%s.png'%(DCOtype, BPSmodel), transparent=False, bbox_inches="tight", dpi=600, format='png')
 
             print('done')
@@ -539,8 +594,13 @@ def plot_redshift_fc(xparam = 'mass_1_LVK', plotYlog = True, DCOtypeList = ['BNS
 
 def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
                           spin_threshold='None', bw=0.01, xlim=[0,1], ylim=[0,1],\
-                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde'):#, mssfr='112'):
+                          plotYlog='False', ylim_threshold=0.02,DCOtype='BBH', histtype='kde', redshift=None, weights_type='merger'):#, mssfr='112'):
     
+    """
+    weights_type='merger' or "formation"
+
+    """
+
     fs_l = 28 # label fontsize
     fs_major=34
             
@@ -561,12 +621,12 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
     seedsSN   = fdata['supernovae']['randomSeed'][...].squeeze()    # get the seeds in the SN file 
     indices   = np.sort(np.unique(seedsSN[1::2], return_index=True)[1])
     maskSNdco = np.in1d(seedsSN,  seedsDCO) # mask in the SNe files the SNe that correspond to our DCO
-    whichSN   = fdata['supernovae']['whichStar'][...].squeeze()[maskSNdco]  # this is 1 if the initially primary star goes SN and 2 if the secondary goes supernova     
-    whichSN2  = whichSN[1::2][indices]
+    # whichSN   = fdata['supernovae']['whichStar'][...].squeeze()[maskSNdco]  # this is 1 if the initially primary star goes SN and 2 if the secondary goes supernova     
+    # whichSN2  = whichSN[1::2][indices]
 
     # either SN2 = primary (1) and M1 is > M2, or SN2 = secondary & M1 < M2 
     # this takes into account (first term) rejuvenation 
-    mask_MRR = ((whichSN2==1) & (massCO_ZAMSM1>massCO_ZAMSM2) ) | ((whichSN2==2) & (massCO_ZAMSM1<massCO_ZAMSM2)) 
+    # mask_MRR = ((whichSN2==1) & (massCO_ZAMSM1>massCO_ZAMSM2) ) | ((whichSN2==2) & (massCO_ZAMSM1<massCO_ZAMSM2)) 
 
     # obtain formation channels 
     seeds = fdata['doubleCompactObjects']['seed'][...].squeeze()
@@ -575,8 +635,8 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
     
     del massCO_ZAMSM1
     del massCO_ZAMSM2
-    del whichSN2
-    del whichSN
+    # del whichSN2
+    # del whichSN
     del maskSNdco
     del indices
     del seedsSN
@@ -631,6 +691,13 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
         elif DCOtype=='BNS':
             xx = np.linspace(-2,5,500)
 
+    elif xparam=='mass_tot':
+        param_x = massCO_LVKM1 + massCO_LVKM2
+        nameX = r'$\mathcal{M}_{\rm{tot}} \ [M_{\odot}]$'
+        nameY = r'\textbf{PDF}'
+        xx = np.linspace(1,5,1000)
+        print(param_x)
+        print(np.shape(param_x))
 
     elif xparam=='mass_2_LVK':
         param_x = massCO_LVKM2
@@ -678,13 +745,13 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
         nameY = r'\textbf{PDF}'  
         xx = np.linspace(-2.5,2,500)  
         print('obtained params')
-    elif xparam=='log10_t_delay':
-        param_x = (fdata['doubleCompactObjects']['tform'][...].squeeze() +  fdata['doubleCompactObjects']['tc'][...].squeeze() ) / 1000 # divide by 1000 to make it in [Gyr]
-        param_x = np.log10(param_x)
-        nameX = r'$\log_{10} t_{\rm{delay}} \ [\rm{Gyr}]$'
-        nameY = r'\textbf{PDF}'  
-        xx = np.linspace(-2.5,2,500)  
-        print('obtained params')
+    # elif xparam=='log10_t_delay':
+    #     param_x = (fdata['doubleCompactObjects']['tform'][...].squeeze() +  fdata['doubleCompactObjects']['tc'][...].squeeze() ) / 1000 # divide by 1000 to make it in [Gyr]
+    #     param_x = np.log10(param_x)
+    #     nameX = r'$\log_{10} t_{\rm{delay}} \ [\rm{Gyr}]$'
+    #     nameY = r'\textbf{PDF}'  
+    #     xx = np.linspace(-2.5,2,500)  
+    #     print('obtained params')
 
     
     if (mode=='MRR_PDF') | (mode=='spin_PDF'):
@@ -737,7 +804,7 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
         if np.sum(mask_MRR)>10:
     
             for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:]):
-            # for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:2]):    
+            # for ind_mssfr, mssfr in enumerate(MSSFRnameslist[0:2]):      # temp 
 
                 ls_ = '-'
                 Highlight = False
@@ -755,12 +822,25 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
 
 
                 ### read in MSSFR weights: ###
-    #             fparam_key = 'weights_detected'
-                fparam_key = 'weights_intrinsic'
-                weightheader = 'w_' + mssfr
-                weights_ = fdata[fparam_key][weightheader][...].squeeze()
+                if redshift!=None:
+                    if weights_type=='merger':
+                        print('doing merger weights ')
+                        fparam_key = 'weights_intrinsicPerRedshift'
+                        weightheader = 'w_' + mssfr + '_z_' +  str(redshift)
+                        weights_ = fdata[fparam_key][weightheader][...].squeeze()
+                    elif weights_type=='formation':
+                        print('doing formation weights ')
+                        fparam_key = "weights_intrinsicFormationPerRedshift"
+                        weightheader = 'wform_' + mssfr + '_z_' +  str(redshift)
+                        weights_ = fdata[fparam_key][weightheader][...].squeeze()
+                else:
+                    fparam_key = 'weights_intrinsic'
+                    weightheader = 'w_' + mssfr
+                    weights_ = fdata[fparam_key][weightheader][...].squeeze()
+
                 w = weights_
-                bandwidth=1
+                # bandwidth=1
+                ####
 
 
                 if (mode=='MRR_PDF') | (mode=='MRR_fraction') |  (mode=='notMRR_fraction') : 
@@ -851,11 +931,69 @@ def plot_FC_rates(axe='None', xparam='chiEff', BPSmodelName='A', mode='pdf',\
     return axe 
 
 
-
+def obtain_redshiftsruns(pathData = '/Volumes/SimonsFoundation/DataDCO/'):
+    BPSmodelName='A'
+    DCOtype='BNS'
+    path_ = '/Volumes/SimonsFoundation/DataDCO/' + alphabetDirDict[BPSmodelName] +'/'
+    path  = path_ + 'COMPASCompactOutput_'+ DCOtype +'_' + BPSmodelName + '.h5'
+    fdata = h5.File(path, 'r')
+    redshifts = fdata['redshifts']['redshift'][...].squeeze()
+    fdata.close()
+    return redshifts 
 
 ##### PLOT LVKM1 
-# plot_param_fc(xparam = 'mass_1_LVK', plotYlog = True) 
-# plot_param_fc_fraction(xparam = 'mass_1_LVK', plotYlog = False) 
+
+# pathData='/Volumes/SimonsFoundation/DataDCO/'
+# redshifts_runs = obtain_redshiftsruns(pathData = pathData)
+# print(redshifts_runs[0:2])
+
+
+# for redshift in redshifts_runs[0:2]:
+#     redshift = np.round(redshift,4)
+
+#     print()
+#     print('------------------------------------------------')
+#     print('at z = %s'%redshift)
+#     # plot distribution of parameter as a PDF contribution (PDF vs xparam)
+#     print('running fc param')
+#     plot_param_fc(xparam='mass_2_LVK', plotYlog=True, redshift=redshift, pathData=pathData, DCOtypeList = ['BNS']) 
+
+#     # plots distribution of parameter as a fractional contribution (fraction vs xparam)
+#     print('running fc fraction')
+#     plot_param_fc_fraction(xparam = 'mass_2_LVK', plotYlog = False, redshift=redshift, pathData=pathData, DCOtypeList = ['BNS']) 
+#     print('------------------------------------------------')
+#     print()
+
+
+
+#### PLOT DELAY TIMES DISTRIBUTIONS 
+pathData='/Volumes/SimonsFoundation/DataDCO/'
+redshifts_runs = obtain_redshiftsruns(pathData = pathData)
+print(redshifts_runs)
+
+
+run_these_redshifts = [redshifts_runs[0], redshifts_runs[5], redshifts_runs[8],redshifts_runs[16], redshifts_runs[19]]
+print('running redshifts: ', run_these_redshifts)
+
+
+for redshift in run_these_redshifts:
+    redshift = np.round(redshift,4)
+
+    print()
+    print('------------------------------------------------')
+    print('at z = %s'%redshift)
+    # plot distribution of parameter as a PDF contribution (PDF vs xparam)
+    print('running fc param')
+    plot_param_fc(xparam='log10_t_delay', plotYlog=True, redshift=redshift, pathData=pathData, DCOtypeList = ['BBH'], weights_type='formation') 
+
+    # plots distribution of parameter as a fractional contribution (fraction vs xparam)
+    print('running fc fraction')
+    plot_param_fc_fraction(xparam = 'log10_t_delay', plotYlog = False, redshift=redshift, pathData=pathData, DCOtypeList = ['BBH'], weights_type='formation') 
+    print('------------------------------------------------')
+    print()
+
+
+
 
 #### PLOT LVKM2 
 # plot_param_fc(xparam = 'mass_2_LVK', plotYlog = True)
