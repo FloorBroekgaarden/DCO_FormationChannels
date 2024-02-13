@@ -267,9 +267,9 @@ create_df_file = True
 
 
 
-
+#'t_delay', 'mass_ratio_LVK', 'qZAMS', 
 # for xparam_wanted in [ 'mass_tot', 't_delay', 'mass_ratio_LVK', 'mass_1_LVK', 'mass_2_LVK','chirp_mass_LVK','qZAMS', 'separationInitial']:
-for xparam_wanted in [ 'mass_tot', 't_delay', 'mass_ratio_LVK', 'qZAMS', 'separationInitial', 'M1ZAMS', 'M2ZAMS']: #, 'M1ZAMS', 'M2ZAMS']:
+for xparam_wanted in [ 'separationInitial', 'M1ZAMS', 'M2ZAMS']: #, 'M1ZAMS', 'M2ZAMS']:
     print('at xparam ', xparam_wanted)
     
     if single_model==True:enumerate_list = BPSnameslist[3:]
@@ -300,7 +300,7 @@ for xparam_wanted in [ 'mass_tot', 't_delay', 'mass_ratio_LVK', 'qZAMS', 'separa
             plt.tight_layout()
             plt.subplots_adjust(wspace=0., hspace=0.18)  
             plt.savefig('./formation_median/'+ xparam_wanted + '/zQuantile_' +  DCOtype + '_' + save_fig_string + '_' + xparam_wanted + '_w_' + weights_type + '.png', transparent=False, dpi=300)
-            plt.show()
+            # plt.show()
             plt.close()
             print()
 
