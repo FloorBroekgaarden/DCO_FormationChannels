@@ -3,6 +3,7 @@
 *.pyc
 WriteRatesToCSV_EM.py
 *checkpoint.ipynb
+*.DS_Store
 
 
 plottingCode/Fig_2/*.png
@@ -36,3 +37,4 @@ dataFiles/.DS_Store
 dataFiles/.DS_Store
 dataFiles/.DS_Store
 .DS_Store
+dataFiles/.DS_Store
